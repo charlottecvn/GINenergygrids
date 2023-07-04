@@ -24,7 +24,7 @@ plotly==5.11.0
 promise==2.3
 protobuf==4.21.12
 psutil==5.9.4
-pyg-lib==0.1.0#+pt113cu116
+pyg-lib==0.1.0+pt113cu116
 pyparsing==3.0.9
 python-dateutil==2.8.2
 pytz==2022.6

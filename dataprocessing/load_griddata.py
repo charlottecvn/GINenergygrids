@@ -15,6 +15,8 @@ datasets = {
     "all": "all",
 }
 
+os.chdir(os.getcwd() + "/dataprocessing")
+
 def load_grid(
     dataset_explore,
     val_fold=0,
@@ -25,9 +27,7 @@ def load_grid(
     undirected=False,
     edge_classification=False,
 ):
-    directory = "/ceph/knmimo/gnn_nmin1_charlotte/gnn-nmin1-alliander/" + "example_data/" + datasets[dataset_explore]
-    folders = os.listdir(directory)
-    print("amount of folds: ", len(folders) - 3)
+    directory = os.getcwd()
 
     # load data ----------
     print("---> start dataset loading ", dataset_explore)
@@ -42,25 +42,28 @@ def load_grid(
         edge_classification=edge_classification
     )
 
+    """
     print("-- amount of (sub)graphs")
     print("train graphs: ", len(dataset.train_graphs))
     print("validation graphs: ", len(dataset.val_graphs))
     print("test graphs: ", len(dataset.test_graphs))
-
+    """
+    
     return dataset
 
 
 def load_dataloader(dataset, batchsize=64, shuffle=True):
     # put into DataLoader ----------
-    print("---> create data with data loader ")
+    #print("---> create data with data loader ")
     train_loader = DataLoader(
         dataset.train_graphs, batch_size=batchsize, shuffle=shuffle
     )
     val_loader = DataLoader(dataset.val_graphs, batch_size=batchsize, shuffle=shuffle)
     test_loader = DataLoader(dataset.test_graphs, batch_size=batchsize, shuffle=shuffle)
 
-    print("---> data in the train_loader ")
+    #print("---> data in the train_loader ")
     for data in train_loader:
+        """
         print(
             f"Number of graphs: {data.num_graphs} \n"
             f"Number of nodes: {data.num_nodes} \n"
@@ -72,6 +75,7 @@ def load_dataloader(dataset, batchsize=64, shuffle=True):
             f"Has self-loops: {data.has_self_loops()} \n"
             f"Is undirected: {data.is_undirected()} \n"
         )
+        """
         print(data)
         break
 
@@ -79,7 +83,7 @@ def load_dataloader(dataset, batchsize=64, shuffle=True):
     
 def load_dataloader_sampler(dataset, sampler_train, sampler_val, batchsize=64):
     # put into DataLoader using a random subset sampler ----------
-    print("---> create data with data loader (random subset sampler)")
+    #print("---> create data with data loader (random subset sampler)")
     train_loader = DataLoader(
         dataset.train_graphs, batch_size=batchsize, shuffle=False, sampler=sampler_train
     )
@@ -90,7 +94,7 @@ def load_dataloader_sampler(dataset, sampler_train, sampler_val, batchsize=64):
 
 
 def save_torch_dataset(dataset, dataset_explore, samples_fold, topo=False, undir=False, norm=False, edge_class=False):
-    print("---> saving data in torch file ")
+    #print("---> saving data in torch file ")
     if edge_class:
         if topo and undir and norm:
             location_save = f"data_pt/grid_edge_{dataset_explore}_topo_undirected_norm_{samples_fold}.pt"
@@ -130,12 +134,11 @@ def save_torch_dataset(dataset, dataset_explore, samples_fold, topo=False, undir
 
 
 def load_torch_dataset(dataset_explore, samples_fold, topo=False, undir=False, norm=False, edge_class=False):
-    print("---> loading data from torch file ")
-    print("Topology changes: ", topo)
-    print("Undirected: ", undir)
-    print("Normalised: ", norm)
-    print("Edge classification (targets): ", edge_class)
-    
+    #print("---> loading data from torch file ")
+    #print("Topology changes: ", topo)
+    #print("Undirected: ", undir)
+    #print("Normalised: ", norm)
+
     if edge_class:
         if topo and undir and norm:
             location_save = f"data_pt/grid_edge_data_{dataset_explore}_topo_undirected_norm_{samples_fold}.pt"
@@ -171,13 +174,17 @@ def load_torch_dataset(dataset_explore, samples_fold, topo=False, undir=False, n
         else:
             location_save = f"data_pt/grid_data_{dataset_explore}_{samples_fold}.pt"
 
-
+    #print("test")
+    #print(location_save)
     loaded_torch = torch.load(location_save)
 
-    print("-- amount of (sub)graphs")
+    #"""
+    #print("-- amount of (sub)graphs")
+    print("dataset explore: ", dataset_explore)
     print("train graphs: ", len(loaded_torch.train_graphs))
     print("validation graphs: ", len(loaded_torch.val_graphs))
     print("test graphs: ", len(loaded_torch.test_graphs))
+    #"""
 
     return loaded_torch
 
@@ -202,11 +209,11 @@ def concat_datagrid(data_1, data_2):
 
 
 def load_multiple_grid(dataset_explore, samples_fold, norm=False, topo=False, undir=False, edge_class=False):
-    print("---> loading multi data from torch file ")
+    #print("---> loading multi data from torch file ")
     print("Topology changes: ", topo)
     print("Undirected: ", undir)
     print("Normalised: ", norm)
-    print("Edge classification (targets): ", edge_class)
+    #print("Edge classification (targets): ", edge_class)
     
     if len(dataset_explore) > 1:
         dataset_1 = load_torch_dataset(

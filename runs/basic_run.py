@@ -1,5 +1,3 @@
-# example run for slurm job using deep ensembles
-
 import os
 import random
 import torch
@@ -12,9 +10,8 @@ from torch.utils.data import SubsetRandomSampler
 from functorch import combine_state_for_ensemble
 import sys
 
-os.chdir(os.getcwd() + "/GINenergygrids")
+os.chdir(os.getcwd())# + "/GINenergygrids")
 
-print("Starting SLURM (deep ensemble) run")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 print()

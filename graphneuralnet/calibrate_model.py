@@ -9,7 +9,7 @@ import pickle
 import plotly.express as px
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from GIN_model import GIN
+from graphneuralnet.GIN_model import GIN
 from sklearn.calibration import calibration_curve
 
 
@@ -141,7 +141,7 @@ def train_model(
     logging="None",
     print_log=True,
     name_log="test",
-    save_plots=True,
+    save_plots=False,
     reduction_loss="mean",
     l1_weight=0.001,
     l2_weight=0.001,
@@ -494,6 +494,7 @@ def test_model_member(model, loader, name_log, device='cpu', criterion=F.binary_
                 BS_all += BS_part
                 
         if test:
+            """
             #print(pred, out)
             #draw_reliability_graph(pred, targets, name_log=name_log)
             #print(target_member)
@@ -503,6 +504,7 @@ def test_model_member(model, loader, name_log, device='cpu', criterion=F.binary_
             #print(bins_true)
             bins_true = [0.2, 0.4, 0.6, 0.8, 1.0]
             draw_reliability_graph(bins_true, bins_pred, name_log=name_log)
+            """
 
         print(f'current len loader (test): {current_len_loader}')
         
