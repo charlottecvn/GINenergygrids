@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from graphneuralnet.GIN_model import GIN
 from dataprocessing.load_griddata import load_dataloader, load_torch_dataset, load_multiple_grid, load_dataloader_sampler
 from graphneuralnet.calibrate_model import train_model, test_model, test_model_member, AUC_test
+from torchmetrics import MeanSquaredError
 from torch.utils.data import SubsetRandomSampler
 from functorch import combine_state_for_ensemble
 import sys
@@ -160,6 +161,7 @@ model_path = "/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/t
 model_gin.load_state_dict(torch.load(model_path, map_location=device))
 model_gin.eval()
 
+"""
 total_loss, total_acc, BS_mean, pred_member = test_model_member(model_gin, test_loader, "new", device, criterion=base_config["criterion"],
         test=True,
         reduction_loss=additional_config["reduction_loss"],
@@ -168,5 +170,54 @@ total_loss, total_acc, BS_mean, pred_member = test_model_member(model_gin, test_
         temperature=additional_config["temperature_init"])
 
 print(total_acc)
+"""
 
 # permutation feature importance
+def score_model(model, data, data_x, data_z):
+    logits, out_sigmoid = model(data_x, data.edge_index, data.batch, data_z)
+    pred = out_sigmoid
+    targets = data.y
+    mean_squared_error = MeanSquaredError()
+    return mean_squared_error(pred, targets)
+
+score_orig = 0
+data_orig = 0
+for data in test_loader: 
+    if (data.edge_index[0].max() > len(data.batch)-1 or data.edge_index[1].max() > len(data.batch)-1): #not test and
+        pass
+    else:
+        score_ = score_model(model_gin, data, data.x, data.edge_attr)
+        score_orig+=score_
+        data_orig+=1
+score_orig=score_orig/data_orig
+print(f'score original (MSE): {score_orig}')
+
+num_node_feat=4
+num_edge_feat=8
+for i in range(0,num_node_feat):
+    score_i = 0
+    perm_d = 0
+    for d in test_loader:
+        if (d.edge_index[0].max() > len(d.batch)-1 or d.edge_index[1].max() > len(d.batch)-1): #not test and
+            pass
+        else: 
+            #random permute (shuffle) column i of dataset d
+            t = d.x.T[i]
+            idx = torch.randperm(t.shape[0])
+            t = t[idx].view(t.size())
+            d.x.T[i] = t
+            d.x = d.x.T.T
+            #print(d)
+            #break 
+            #compute score
+            score_i_d = score_model(model_gin, d, d.x, d.edge_attr)
+            score_i+=score_i_d
+            perm_d+=1
+           
+    # importance column i 
+    perm_imp_i = score_orig - score_i/perm_d
+    print(f'importance node feat {i}: {perm_imp_i}')
+    break 
+ 
+
+    
