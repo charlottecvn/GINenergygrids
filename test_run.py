@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from graphneuralnet.GIN_model import GIN
 from dataprocessing.load_griddata import load_dataloader, load_torch_dataset, load_multiple_grid, load_dataloader_sampler
 from graphneuralnet.calibrate_model import train_model, test_model, test_model_member, AUC_test
+from torchmetrics.classification import Accuracy, BinarySpecificity, BinaryRecall, BinaryPrecision, BinaryAccuracy, BinaryAUROC, BinaryCalibrationError
 from torchmetrics import MeanSquaredError
 from torch.utils.data import SubsetRandomSampler
 from functorch import combine_state_for_ensemble
@@ -175,10 +176,11 @@ print(total_acc)
 # permutation feature importance
 def score_model(model, data, data_x, data_z):
     logits, out_sigmoid = model(data_x, data.edge_index, data.batch, data_z)
-    pred = out_sigmoid
+    pred = logits #out_sigmoid
     targets = data.y
-    mean_squared_error = MeanSquaredError()
-    return mean_squared_error(pred, targets)
+    #metric_score = BinaryAccuracy()#.to(device)
+    metric_score = MeanSquaredError()
+    return metric_score(pred, targets)
 
 score_orig = 0
 data_orig = 0
@@ -193,31 +195,78 @@ score_orig=score_orig/data_orig
 print(f'score original (MSE): {score_orig}')
 
 num_node_feat=4
-num_edge_feat=8
 for i in range(0,num_node_feat):
     score_i = 0
     perm_d = 0
+    count_pass = 0
     for d in test_loader:
         if (d.edge_index[0].max() > len(d.batch)-1 or d.edge_index[1].max() > len(d.batch)-1): #not test and
             pass
+            count_pass += 1
         else: 
             #random permute (shuffle) column i of dataset d
             t = d.x.T[i]
+
             idx = torch.randperm(t.shape[0])
             t = t[idx].view(t.size())
-            d.x.T[i] = t
-            d.x = d.x.T.T
-            #print(d)
-            #break 
+            if torch.all(t.eq(d.x.T[i])):
+                print("true t:", torch.all(t.eq(d.x.T[i])))
+            d_new_x = d.x
+            #print(d_new_x[:, i])
+            d_new_x[:, i] = t
+
+            #d_new.x.T[i] = t
+            #d.x = d_new.x.T.T
+            #if torch.all(d_new_x.eq(d.x)):
+                #print(torch.all(d_new_x.eq(d.x)))
+                #print(d.x, d_new_x, t)
+                #break 
+
             #compute score
-            score_i_d = score_model(model_gin, d, d.x, d.edge_attr)
+            score_i_d = score_model(model_gin, d, d_new_x, d.edge_attr)
+            #if score_i_d != score_orig:
+                #print(score_i_d)
             score_i+=score_i_d
             perm_d+=1
            
+    #print(count_pass, perm_d)
     # importance column i 
-    perm_imp_i = score_orig - score_i/perm_d
+    #print(score_orig, score_i, score_i/perm_d)
+    perm_imp_i = score_orig - score_i/perm_d#len(test_loader)
     print(f'importance node feat {i}: {perm_imp_i}')
-    break 
+    #break 
  
+num_edge_feat=8
+for i in range(0,num_edge_feat):
+    score_i = 0
+    perm_d = 0
+    count_pass = 0
+    for d in test_loader:
+        if (d.edge_index[0].max() > len(d.batch)-1 or d.edge_index[1].max() > len(d.batch)-1): #not test and
+            pass
+            count_pass += 1
+        else: 
+            #random permute (shuffle) column i of dataset d
+            t = d.edge_attr.T[i]
+            idx = torch.randperm(t.shape[0])
+            t = t[idx].view(t.size())
+            if torch.all(t.eq(d.edge_attr.T[i])):
+                print(torch.all(t.eq(d.edge_attr.T[i])))
+            d.edge_attr.T[i] = t
+            #d.edge_attr = d.edge_attr.T.T
+            if not torch.all(d.edge_attr.T.T.eq(d.edge_attr)):
+                print(torch.all(d.edge_attr.T.T.eq(d.edge_attr)))
+            
+            #compute score
+            score_i_d = score_model(model_gin, d, d.x, d.edge_attr.T.T)
+            score_i+=score_i_d
+            perm_d+=1
+           
+    #print(count_pass, perm_d)
+    # importance column i 
+    #print(score_orig, score_i, score_i/perm_d)
+    perm_imp_i = score_orig - score_i/len(test_loader)
+    print(f'importance node feat {i}: {perm_imp_i}')
+    #break 
 
     
