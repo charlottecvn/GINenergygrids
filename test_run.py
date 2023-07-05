@@ -194,7 +194,8 @@ for data in test_loader:
 score_orig=score_orig/data_orig
 print(f'score original (MSE): {score_orig}')
 
-num_node_feat=4
+node_feat_names = ['power consumption', 'init_U_MSR', 'closed_U_MSR', 'degree']
+num_node_feat=4 
 for i in range(0,num_node_feat):
     score_i = 0
     perm_d = 0
@@ -206,36 +207,22 @@ for i in range(0,num_node_feat):
         else: 
             #random permute (shuffle) column i of dataset d
             t = d.x.T[i]
-
             idx = torch.randperm(t.shape[0])
             t = t[idx].view(t.size())
             if torch.all(t.eq(d.x.T[i])):
                 print("true t:", torch.all(t.eq(d.x.T[i])))
             d_new_x = d.x
-            #print(d_new_x[:, i])
             d_new_x[:, i] = t
-
-            #d_new.x.T[i] = t
-            #d.x = d_new.x.T.T
-            #if torch.all(d_new_x.eq(d.x)):
-                #print(torch.all(d_new_x.eq(d.x)))
-                #print(d.x, d_new_x, t)
-                #break 
-
             #compute score
             score_i_d = score_model(model_gin, d, d_new_x, d.edge_attr)
-            #if score_i_d != score_orig:
-                #print(score_i_d)
             score_i+=score_i_d
             perm_d+=1
            
-    #print(count_pass, perm_d)
     # importance column i 
-    #print(score_orig, score_i, score_i/perm_d)
     perm_imp_i = score_orig - score_i/perm_d#len(test_loader)
-    print(f'importance node feat {i}: {perm_imp_i}')
-    #break 
+    print(f'importance node feat {node_feat_names[i]}({i}): {perm_imp_i}')
  
+edge_feat_names = ['impedance', 'reactance', 'I_NOM (nominal current)', 'to_netopening', 'init_I_cable', 'closed_I_cable', 'init_I_cable_/I_NOM', 'closed_I_cable_/I_NOM']
 num_edge_feat=8
 for i in range(0,num_edge_feat):
     score_i = 0
@@ -251,22 +238,16 @@ for i in range(0,num_edge_feat):
             idx = torch.randperm(t.shape[0])
             t = t[idx].view(t.size())
             if torch.all(t.eq(d.edge_attr.T[i])):
-                print(torch.all(t.eq(d.edge_attr.T[i])))
-            d.edge_attr.T[i] = t
-            #d.edge_attr = d.edge_attr.T.T
-            if not torch.all(d.edge_attr.T.T.eq(d.edge_attr)):
-                print(torch.all(d.edge_attr.T.T.eq(d.edge_attr)))
-            
+                print("true t:", torch.all(t.eq(d.edge_attr.T[i])))
+            d_new_edge_attr = d.edge_attr
+            d_new_edge_attr[:, i] = t
             #compute score
-            score_i_d = score_model(model_gin, d, d.x, d.edge_attr.T.T)
+            score_i_d = score_model(model_gin, d, d.x, d_new_edge_attr)
             score_i+=score_i_d
             perm_d+=1
-           
-    #print(count_pass, perm_d)
+
     # importance column i 
-    #print(score_orig, score_i, score_i/perm_d)
-    perm_imp_i = score_orig - score_i/len(test_loader)
-    print(f'importance node feat {i}: {perm_imp_i}')
-    #break 
+    perm_imp_i = score_orig - score_i/perm_d#len(test_loader)
+    print(f'importance edge feat {edge_feat_names[i]}({i}): {perm_imp_i}')
 
     
