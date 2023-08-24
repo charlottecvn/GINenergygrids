@@ -8,15 +8,15 @@ This repository demonstrates the main algorithm in a barebone manner.
 See figure below for further complementaty illustrative examples for the GIN equations mentioned in the paper.
 
 ![GIN block](GINblock.drawio.png)
-*Overview of a single GIN block, example includes as input the first layer of embeddings ($k=0$), and results in the second layer of embeddings ($k=1$).*
+<sup><sub>Overview of a single GIN block, example includes as input the first layer of embeddings ($k=0$), and results in the second layer of embeddings ($k=1$).</sub></sup>
 
 ![GIN block](edgenode.drawio.png)
-*Representation of an example graph $G$ (1-hop nieghbourhood), with target node $v$, highlighted in red.  All neighbouring nodes $u$ of $v$, $u \in \mathcal{N}(v)$, highlighted in blue. The edges ($e$) included in this neighbourhood are highlighted in purple.*
+<sup><sub>Representation of an example graph $G$ (1-hop nieghbourhood), with target node $v$, highlighted in red.  All neighbouring nodes $u$ of $v$, $u \in \mathcal{N}(v)$, highlighted in blue. The edges ($e$) included in this neighbourhood are highlighted in purple.</sub></sup>
 
 ![GIN block](edgefeat_update.drawio.png)
-*Apply the first $MLP$s in the first layer ($k=0$), for the edges. Update the embeddings using the previous layer.*
+<sup><sub>Apply the first $MLP$s in the first layer ($k=0$), for the edges. Update the embeddings using the previous layer.</sub></sup>
 
 ![GIN block](nodefeat_update.drawio.png)
-*Apply the first $MLP$s in the first layer ($k=0$). Apply aggregation (and combining in the second layer ($k=1$), for both the nodes and edges. For simplification, only the 1-hop neighbourhood of node $v$ is considered. In the real method, we considered these steps for all nodes and edges.*
+<sup><sub>Apply the first $MLP$s in the first layer ($k=0$). Apply aggregation (and combining in the second layer ($k=1$), for both the nodes and edges. For simplification, only the 1-hop neighbourhood of node $v$ is considered. In the real method, we considered these steps for all nodes and edges.</sub></sup>
 
 
