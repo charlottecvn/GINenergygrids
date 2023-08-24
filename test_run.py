@@ -2,12 +2,14 @@ import os
 import random
 import torch
 import torch.nn.functional as F
+import numpy as np
+import pandas as pd
 
 from graphneuralnet.GIN_model import GIN
 from dataprocessing.load_griddata import load_dataloader, load_torch_dataset, load_multiple_grid, load_dataloader_sampler
 from graphneuralnet.calibrate_model import train_model, test_model, test_model_member, AUC_test
 from torchmetrics.classification import Accuracy, BinarySpecificity, BinaryRecall, BinaryPrecision, BinaryAccuracy, BinaryAUROC, BinaryCalibrationError
-from torchmetrics import MeanSquaredError
+from torchmetrics import MeanSquaredError, MeanAbsoluteError
 from torch.utils.data import SubsetRandomSampler
 from functorch import combine_state_for_ensemble
 import sys
@@ -178,8 +180,8 @@ def score_model(model, data, data_x, data_z):
     logits, out_sigmoid = model(data_x, data.edge_index, data.batch, data_z)
     pred = logits #out_sigmoid
     targets = data.y
-    #metric_score = BinaryAccuracy()#.to(device)
-    metric_score = MeanSquaredError()
+    #metric_score = BinaryAUROC()#.to(device)
+    metric_score = MeanSquaredError()#MeanAbsoluteError()#MeanSquaredError()
     return metric_score(pred, targets)
 
 score_orig = 0
@@ -192,8 +194,11 @@ for data in test_loader:
         score_orig+=score_
         data_orig+=1
 score_orig=score_orig/data_orig
-print(f'score original (MSE): {score_orig}')
+#print(f'score original (MSE): {score_orig}')
 
+feat_importance = torch.empty(12, dtype=torch.float)
+
+"""
 node_feat_names = ['power consumption', 'init_U_MSR', 'closed_U_MSR', 'degree']
 num_node_feat=4 
 for i in range(0,num_node_feat):
@@ -220,8 +225,11 @@ for i in range(0,num_node_feat):
            
     # importance column i 
     perm_imp_i = score_orig - score_i/perm_d#len(test_loader)
+    feat_importance[i] = perm_imp_i
     print(f'importance node feat {node_feat_names[i]}({i}): {perm_imp_i}')
- 
+
+"""
+
 edge_feat_names = ['impedance', 'reactance', 'I_NOM (nominal current)', 'to_netopening', 'init_I_cable', 'closed_I_cable', 'init_I_cable_/I_NOM', 'closed_I_cable_/I_NOM']
 num_edge_feat=8
 for i in range(0,num_edge_feat):
@@ -248,6 +256,45 @@ for i in range(0,num_edge_feat):
 
     # importance column i 
     perm_imp_i = score_orig - score_i/perm_d#len(test_loader)
+    #feat_importance[i+4] = perm_imp_i
     print(f'importance edge feat {edge_feat_names[i]}({i}): {perm_imp_i}')
 
-    
+print(feat_importance)
+feat_importance = feat_importance[0:8]
+
+"""
+feat_importance = (feat_importance-min(feat_importance))/(max(feat_importance)-min(feat_importance))
+print(feat_importance)
+
+import pandas as pd 
+import numpy as np 
+import matplotlib.pyplot as plt 
+import seaborn as sns
+
+def plot_feature_importance(importance,names):
+    #Create arrays from feature importance and feature names
+    feature_importance = np.array(importance)
+    feature_names = np.array(names)
+
+    #Create a DataFrame using a Dictionary
+    data={'feature_names':feature_names,'feature_importance':feature_importance}
+    fi_df = pd.DataFrame(data)
+
+    #Sort the DataFrame in order decreasing feature importance
+    fi_df.sort_values(by=['feature_importance'], ascending=False,inplace=True)
+
+    #Define size of bar plot
+    plt.figure(figsize=(10,8))
+    #Plot Searborn bar chart
+    sns.barplot(x=fi_df['feature_importance'], y=fi_df['feature_names'])
+    #Add chart labels
+    plt.title('FEATURE IMPORTANCE')
+    plt.xlabel('FEATURE IMPORTANCE')
+    plt.ylabel('FEATURE NAMES')
+    plt.show()
+
+
+feat_names = ['power consumption', 'init_U_MSR', 'closed_U_MSR', 'degree','impedance', 'reactance', 'I_NOM (nominal current)', 'to_netopening', 'init_I_cable', 'closed_I_cable', 'init_I_cable_/I_NOM', 'closed_I_cable_/I_NOM']
+feat_importance_norm = feat_importance
+plot_feature_importance(feat_importance_norm, feat_names)
+"""
