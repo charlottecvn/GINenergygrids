@@ -2,7 +2,7 @@
 
 ![General pipeline of the proposed framework](pipeline_gin.drawio.png)
 
-Graph Isomorphic Networks for assessing the N-1 principle on energy grids. Case study on a medium-voltage grid of a DSO (Alliander). Created as part of my PhD at Radboud University and AI for Energy Grids Lab.
+Graph Isomorphic Networks for assessing the N-1 principle on energy grids. Case study on a medium-voltage grid of a DSO (Alliander). 
 This repository demonstrates the main algorithm in a barebone manner.
 
 See the figures below for complementary illustrations of the GIN equations mentioned in the paper.
@@ -22,5 +22,3 @@ See the figures below for complementary illustrations of the GIN equations menti
 ![GIN block](nodefeat_update.drawio.png)
 
 <sup><sub>Fig 4. Apply the first MLPs in the first layer ($k=0$). Apply aggregation (and combining in the second layer ($k=1$), for both the nodes and edges. For simplification, only the 1-hop neighbourhood of node $v$ is considered. In the real method, we considered these steps for all nodes and edges.</sub></sup>
-
-
