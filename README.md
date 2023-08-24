@@ -2,10 +2,10 @@
 
 ![General pipeline of the proposed framework](pipeline_gin.drawio.png)
 
-Graph Neural Networks for assessing the N-1 principle on energy grids. Case study on a medium-voltage grid of a DSO (Alliander). Created as part of my PhD at Radboud University and AI for Energy Grids Lab.
+Graph Isomorphic Networks for assessing the N-1 principle on energy grids. Case study on a medium-voltage grid of a DSO (Alliander). Created as part of my PhD at Radboud University and AI for Energy Grids Lab.
 This repository demonstrates the main algorithm in a barebone manner.
 
-See figure below for further complementaty illustrative examples for the GIN equations mentioned in the paper.
+See the figures below for complementary illustrations of the GIN equations mentioned in the paper.
 
 ![GIN block](GINblock.drawio.png)
 
@@ -13,7 +13,7 @@ See figure below for further complementaty illustrative examples for the GIN equ
 
 ![GIN block](edgenode.drawio.png)
 
-<sup><sub>Fig 2. Representation of an example graph $G$ (1-hop nieghbourhood), with target node $v$, highlighted in red.  All neighbouring nodes $u$ of $v$, $u \in \mathcal{N}(v)$, highlighted in blue. The edges ($e$) included in this neighbourhood are highlighted in purple.</sub></sup>
+<sup><sub>Fig 2. Representation of an example graph $G$ (1-hop neighbourhood), with target node $v$, highlighted in red.  All neighbouring nodes $u$ of $v$, $u \in \mathcal{N}(v)$, highlighted in blue. The edges ($e$) included in this neighbourhood are highlighted in purple.</sub></sup>
 
 ![GIN block](edgefeat_update.drawio.png)
 
