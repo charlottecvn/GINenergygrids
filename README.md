@@ -17,7 +17,7 @@ See figure below for further complementaty illustrative examples for the GIN equ
 
 ![GIN block](edgefeat_update.drawio.png)
 
-<sup><sub>Fig 2. Apply the first MLPs in the first layer ($k=0$), for the edges. Update the embeddings using the previous layer.</sub></sup>
+<sup><sub>Fig 3. Apply the first MLPs in the first layer ($k=0$), for the edges. Update the embeddings using the previous layer.</sub></sup>
 
 ![GIN block](nodefeat_update.drawio.png)
 
