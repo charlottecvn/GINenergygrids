@@ -208,7 +208,9 @@ for dataset_explore in datasets:
     plt.hist(u_closed_no0, bins=30)
     plt.title(f" mean distribution closed U of dataset {dataset_explore}")
     # plt.show()
-    plt.savefig(f"logs/figures/mean distribution closed U of dataset {dataset_explore}.png")
+    plt.savefig(
+        f"logs/figures/mean distribution closed U of dataset {dataset_explore}.png"
+    )
 
     print("Mean current U: ", np.mean(np.array(u_now)))
     u_now_h = np.mean(np.array(u_now), axis=0)
@@ -216,7 +218,9 @@ for dataset_explore in datasets:
     plt.hist(u_now_no0, bins=30)
     plt.title(f" mean distribution current U of dataset {dataset_explore}")
     # plt.show()
-    plt.savefig(f"logs/figures/mean distribution current U of dataset {dataset_explore}.png")
+    plt.savefig(
+        f"logs/figures/mean distribution current U of dataset {dataset_explore}.png"
+    )
 
     print("Mean node degree: ", np.mean(np.array(node_degree)))
     node_degree_h = np.mean(np.array(node_degree), axis=0)

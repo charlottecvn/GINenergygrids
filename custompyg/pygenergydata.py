@@ -10,7 +10,8 @@ from torch_geometric.data import Data
 import torch_geometric
 
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 datasets = {
     "aalbuhn": "aalbuhn",
@@ -21,21 +22,21 @@ datasets = {
     "all": "all",
 }
 
+
 class GridDataset:
     """
     load a dataset of medium voltage grids
     """
 
     def __init__(
-            self,
-            directory,
-            val_fold=0,
-            samples_per_fold=2000,
-            small_part=False,
-            normalise=False,
-            different_topo=False,
-            undirected=False,
-            edge_classification=False,
+        self,
+        directory,
+        val_fold=0,
+        samples_per_fold=2000,
+        small_part=False,
+        normalise=False,
+        different_topo=False,
+        undirected=False
     ):
         """
         args:
@@ -50,9 +51,6 @@ class GridDataset:
         self.small_part = small_part
         self.different_topo = different_topo
         self.undirected = undirected
-        self.edge_classification = edge_classification
-        if self.edge_classification:
-            print("! using edge targets for the edge classification task")
 
         self.train_graphs = []
         self.val_graphs = []
@@ -85,18 +83,9 @@ class GridDataset:
         self.train_graphs = self.get_graph_format(
             paths, different_topo=self.different_topo
         )
-        self.train_graphs_true = self.get_graph_format(
-            paths, different_topo=False
-        )
+        self.train_graphs_true = self.get_graph_format(paths, different_topo=False)
 
-        if not self.edge_classification:
-            self.train_targets = self.get_targets(
-                paths
-            )
-        else:
-            self.train_targets = self.get_targets_edge(
-                paths, input_data=self.train_graphs
-            )
+        self.train_targets = self.get_targets(paths)
 
     def load_val_example(self):
         """
@@ -116,14 +105,7 @@ class GridDataset:
             paths, different_topo=self.different_topo
         )
 
-        if not self.edge_classification:
-            self.val_targets = self.get_targets(
-                paths
-            )
-        else:
-            self.val_targets = self.get_targets_edge(
-                paths, input_data=self.val_graphs
-            )
+        self.val_targets = self.get_targets(paths)
 
     def load_test_example(self):
         """
@@ -139,18 +121,9 @@ class GridDataset:
                 continue
             paths.append(os.path.join(test_dir, iteration))
 
-        self.test_graphs = self.get_graph_format(
-            paths, different_topo=False
-        )
+        self.test_graphs = self.get_graph_format(paths, different_topo=False)
 
-        if not self.edge_classification:
-            self.test_targets = self.get_targets(
-                paths
-            )
-        else:
-            self.test_targets = self.get_targets_edge(
-                paths, input_data=self.test_graphs
-            )
+        self.test_targets = self.get_targets(paths)
 
     def normalise_data(self):
         """
@@ -179,13 +152,13 @@ class GridDataset:
                 nodes_std_ = nodes_std
 
                 if diff_len_nodes < 0:
-                    #print(f"total number of nodes removed for graph {i}: {diff_len_nodes*-1}")
-                    diff_total_nodes+=diff_len_nodes*-1
-                    for _ in range(diff_len_nodes*-1):
+                    # print(f"total number of nodes removed for graph {i}: {diff_len_nodes*-1}")
+                    diff_total_nodes += diff_len_nodes * -1
+                    for _ in range(diff_len_nodes * -1):
                         nodes_mean_ = np.delete(nodes_mean_, -1, 0)
                         nodes_std_ = np.delete(nodes_std_, -1, 0)
                 else:
-                    #print(f"total number of nodes added for graph {i}: {diff_len_nodes}")
+                    # print(f"total number of nodes added for graph {i}: {diff_len_nodes}")
                     diff_total_nodes += diff_len_nodes
                     for _ in range(diff_len_nodes):
                         nodes_mean_ = np.append(nodes_mean_, [nodes_mean_[-1]], axis=0)
@@ -201,7 +174,7 @@ class GridDataset:
                 edges_std_ = edges_std
 
                 if diff_len_edges < 0:
-                    for _ in range(diff_len_edges*-1):
+                    for _ in range(diff_len_edges * -1):
                         edges_mean_ = np.delete(edges_mean_, -1, 0)
                         edges_std_ = np.delete(edges_std_, -1, 0)
                 else:
@@ -213,7 +186,9 @@ class GridDataset:
                     (graph.edge_attr.detach().numpy() - edges_mean_) / edges_std_,
                     dtype=torch.float,
                 )
-            print(f"average number of nodes removed/added over all graph: {diff_total_nodes/len(graph_list)}")
+            print(
+                f"average number of nodes removed/added over all graph: {diff_total_nodes/len(graph_list)}"
+            )
 
     def get_graph_format(self, path, different_topo):
         """
@@ -230,18 +205,22 @@ class GridDataset:
 
         for path_i in path:
             # get a list of nodes and a dictionary from railkey to index
-            y_targets = torch.tensor(
-                self.get_targets([path_i]), dtype=torch.float
-            )
+            y_targets = torch.tensor(self.get_targets([path_i]), dtype=torch.float)
 
-            if y_targets == 0.0 and different_topo: # removing edge/node pairs when different_topo=True
+            if (
+                y_targets == 0.0 and different_topo
+            ):  # removing edge/node pairs when different_topo=True
                 nodes, railkey2index, _ = self.get_nodes(path_i, remove_topo=True)
                 edges, senders, receivers = self.get_edges(path_i, railkey2index)
-                #print(len(nodes), len(edges))
-            elif y_targets == 1.0 and different_topo: # adding edge/node pairs when different_topo=True
+                # print(len(nodes), len(edges))
+            elif (
+                y_targets == 1.0 and different_topo
+            ):  # adding edge/node pairs when different_topo=True
                 nodes, railkey2index, edges_org = self.get_nodes(path_i, add_topo=True)
-                edges, senders, receivers = self.get_edges_extra(edges_org, railkey2index)
-                #print(len(nodes), len(edges))
+                edges, senders, receivers = self.get_edges_extra(
+                    edges_org, railkey2index
+                )
+                # print(len(nodes), len(edges))
             else:
                 nodes, railkey2index, _ = self.get_nodes(path_i)
                 edges, senders, receivers = self.get_edges(path_i, railkey2index)
@@ -255,13 +234,11 @@ class GridDataset:
                     edge_index, edge_attr, reduce="mean"
                 )
 
-            #y_targets = torch.tensor(
+            # y_targets = torch.tensor(
             #    self.get_targets_edge([path_i], input_data=edge_index[1], edge_indexs=True), dtype=torch.float
-            #)
+            # )
 
-            graphs = Data(
-                x=x, edge_index=edge_index, edge_attr=edge_attr, y=y_targets
-            )
+            graphs = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y_targets)
             graphs_list.append(graphs)
 
         return graphs_list
@@ -357,12 +334,12 @@ class GridDataset:
                 targets.append(edges_i)
             else:
                 edges_i.fill(1.0)
-                location_nmin1 = unswitchables['unswitchables_by_capacities.edge']
+                location_nmin1 = unswitchables["unswitchables_by_capacities.edge"]
                 for edge_nmin1 in location_nmin1:
                     edges_i[edge_nmin1] = 0.0
                 targets.append(edges_i)
-            #print(edges_i)
-            #print(targets)
+            # print(edges_i)
+            # print(targets)
         return targets
 
     # TODO: change name node_df
@@ -383,8 +360,8 @@ class GridDataset:
         merged = node_df.merge(edges_org, left_on="RAIL", right_on="FROM_RAILKEY")
         counts = (
             merged.groupby("RAIL")
-                .edge.count()
-                .reindex(node_df.RAIL.unique(), fill_value=0)
+            .edge.count()
+            .reindex(node_df.RAIL.unique(), fill_value=0)
         )
         node_df = node_df.merge(counts, on="RAIL")
         node_df.rename(columns={"edge": "outgoing"}, inplace=True)
@@ -393,8 +370,8 @@ class GridDataset:
         merged = node_df.merge(edges_org, left_on="RAIL", right_on="TO_RAILKEY")
         counts = (
             merged.groupby("RAIL")
-                .edge.count()
-                .reindex(node_df.RAIL.unique(), fill_value=0)
+            .edge.count()
+            .reindex(node_df.RAIL.unique(), fill_value=0)
         )
         node_df = node_df.merge(counts, on="RAIL")
         node_df.rename(columns={"edge": "incoming"}, inplace=True)
@@ -456,9 +433,12 @@ class GridDataset:
         elif add_topo:
             node_df_topo = node_df
             for cand_i in list(index_candidates):
-                rail_i = list(node_df_topo.iloc[[cand_i],0])[0]
-                node_df_topo = node_df_topo.append(node_df_topo.loc[[cand_i]].assign(**{'RAIL': rail_i*10}), ignore_index=True)
-                node_pairs.append([rail_i, rail_i*10])
+                rail_i = list(node_df_topo.iloc[[cand_i], 0])[0]
+                node_df_topo = node_df_topo.append(
+                    node_df_topo.loc[[cand_i]].assign(**{"RAIL": rail_i * 10}),
+                    ignore_index=True,
+                )
+                node_pairs.append([rail_i, rail_i * 10])
 
         if remove_topo or add_topo:
             node_df = node_df_topo
@@ -469,16 +449,25 @@ class GridDataset:
         node_df = node_df.astype("float64")
         # create list of lists, each inner list represents one node
         nodes = node_df.values.tolist()
-        
+
         edges_org = 0
 
-        if add_topo:  #edge information
+        if add_topo:  # edge information
             edges_org = pd.read_csv(os.path.join(path, "new_EDGES_ORG.csv"))
-            edge_n = len(edges_org)+2
+            edge_n = len(edges_org) + 2
             for i, cand_i in enumerate(list(index_candidates)):
                 sender_i, receiver_i = node_pairs[i]
-                edge_n+=1
-                edges_org = edges_org.append(edges_org[edges_org.TO_RAILKEY==sender_i].assign(**{'edge': edge_n+1, 'FROM_RAILKEY': sender_i, 'TO_RAILKEY': receiver_i}), ignore_index=True)
+                edge_n += 1
+                edges_org = edges_org.append(
+                    edges_org[edges_org.TO_RAILKEY == sender_i].assign(
+                        **{
+                            "edge": edge_n + 1,
+                            "FROM_RAILKEY": sender_i,
+                            "TO_RAILKEY": receiver_i,
+                        }
+                    ),
+                    ignore_index=True,
+                )
 
         return nodes, railkey2index, edges_org
 
@@ -533,10 +522,10 @@ class GridDataset:
         edges_org = edges_org.loc[~edges_org["edge"].isin(rmv_senders_idx)]
 
         edges_org["init_I_cable_/I_NOM"] = (
-                edges_org["init_I_cable"] / edges_org["I_NOM"]
+            edges_org["init_I_cable"] / edges_org["I_NOM"]
         )
         edges_org["closed_I_cable_/I_NOM"] = (
-                edges_org["closed_I_cable"] / edges_org["I_NOM"]
+            edges_org["closed_I_cable"] / edges_org["I_NOM"]
         )
 
         # change values of TO_NETOPENING from string to int ("open"->0, "dicht"->1)
@@ -607,10 +596,10 @@ class GridDataset:
         edges_org = edges_org.loc[~edges_org["edge"].isin(rmv_senders_idx)]
 
         edges_org["init_I_cable_/I_NOM"] = (
-                edges_org["init_I_cable"] / edges_org["I_NOM"]
+            edges_org["init_I_cable"] / edges_org["I_NOM"]
         )
         edges_org["closed_I_cable_/I_NOM"] = (
-                edges_org["closed_I_cable"] / edges_org["I_NOM"]
+            edges_org["closed_I_cable"] / edges_org["I_NOM"]
         )
 
         # change values of TO_NETOPENING from string to int ("open"->0, "dicht"->1)

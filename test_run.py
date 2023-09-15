@@ -1,20 +1,15 @@
 import os
-import random
 import torch
 import torch.nn.functional as F
-import numpy as np
-import pandas as pd
 
-from graphneuralnet.GIN_model import GIN
-from dataprocessing.load_griddata import load_dataloader, load_torch_dataset, load_multiple_grid, load_dataloader_sampler
-from graphneuralnet.calibrate_model import train_model, test_model, test_model_member, AUC_test
-from torchmetrics.classification import Accuracy, BinarySpecificity, BinaryRecall, BinaryPrecision, BinaryAccuracy, BinaryAUROC, BinaryCalibrationError
-from torchmetrics import MeanSquaredError, MeanAbsoluteError
-from torch.utils.data import SubsetRandomSampler
-from functorch import combine_state_for_ensemble
-import sys
+from graphnetwork.GIN_model import GIN
+from dataprocessing.load_griddata import (
+    load_dataloader,
+    load_multiple_grid,
+)
+from torchmetrics import MeanSquaredError
 
-os.chdir(os.getcwd())# + "/GINenergygrids")
+os.chdir(os.getcwd())  # + "/GINenergygrids")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -23,26 +18,26 @@ print()
 torch.manual_seed(2023)
 
 print_log = True
-merged_dataset = True 
+merged_dataset = True
 normalise_features = False
 topo_changes = True
-undirected = True 
-calibrate_temperature = False 
+undirected = True
+calibrate_temperature = False
 deep_ensemble = True
-bootstrap = True 
-num_ensembles = 1 
+bootstrap = True
+num_ensembles = 1
 save_plots = True
 
-logging = "None"  
+logging = "None"
 
 if merged_dataset:
     dataset_explore = [
-        "aalbuhn_small_changes", 
+        "aalbuhn_small_changes",
         "tmdl",
         "arnhem",
         "ap",
     ]  # last one [-1] is the test data
-    samples_fold = [2000, 2000, 200, 2000] 
+    samples_fold = [2000, 2000, 200, 2000]
     print(
         f"Merging datasets [{dataset_explore[0], dataset_explore[1], dataset_explore[2]}] for training and using [{dataset_explore[3]}] for testing"
     )
@@ -70,21 +65,21 @@ base_config = {
 additional_config = {
     "dataset_explore": dataset_explore,
     "samples_fold": samples_fold,
-    "batch_size": 32,  
-    "activation_function_mlp": "LeakyReLU",  
+    "batch_size": 32,
+    "activation_function_mlp": "LeakyReLU",
     "activation_function_gin": "LeakyReLU",
-    "aggregation_nodes_edges": "max",  
-    "aggregation_global": "max", 
-    "epochs": 125, 
+    "aggregation_nodes_edges": "max",
+    "aggregation_global": "max",
+    "epochs": 125,
     "num_layers": 15,
-    "dropout": 0.15, 
-    "lr": 1e-6, 
+    "dropout": 0.15,
+    "lr": 1e-6,
     "weightdecay": 0.01,
     "optimizer": "adam",
-    "reduction_loss":"sum", 
-    "l1_weight": 0.01, 
+    "reduction_loss": "sum",
+    "l1_weight": 0.01,
     "l2_weight": 0.01,
-    "temperature_init":0.9, 
+    "temperature_init": 0.9,
 }
 
 additional_config.update(
@@ -135,7 +130,7 @@ train_loader, val_loader, test_loader = load_dataloader(
     shuffle=base_config["shuffle_data"],
 )
 
-#print(len(test_loader))
+# print(len(test_loader))
 
 for loader in train_loader:
     for data in train_loader:
@@ -144,23 +139,23 @@ for loader in train_loader:
         break
 
 model_gin = GIN(
-        in_channels_gin_x=n_node_feat,
-        in_channels_gin_edge=n_edge_feat,
-        hidden_channels_gin=base_config["hidden_mlp"],
-        out_channels_gin=base_config["hidden_mlp"],
-        hidden_channels_global=additional_config["hidden_global"],
-        out_channels_global=base_config["out_global"],
-        num_layers=additional_config["num_layers"],
-        edge_features=base_config["edge_features"],
-        dropout=additional_config["dropout"],
-        linear_learn=base_config["linear_learn"],
-        activation_function_mlp=additional_config["activation_function_mlp"],
-        activation_function_gin=additional_config["activation_function_gin"],
-        aggregation_nodes_edges=additional_config["aggregation_nodes_edges"],
-        aggregation_global=additional_config["aggregation_global"],
-    ).to(device)
+    in_channels_gin_x=n_node_feat,
+    in_channels_gin_edge=n_edge_feat,
+    hidden_channels_gin=base_config["hidden_mlp"],
+    out_channels_gin=base_config["hidden_mlp"],
+    hidden_channels_global=additional_config["hidden_global"],
+    out_channels_global=base_config["out_global"],
+    num_layers=additional_config["num_layers"],
+    edge_features=base_config["edge_features"],
+    dropout=additional_config["dropout"],
+    linear_learn=base_config["linear_learn"],
+    activation_function_mlp=additional_config["activation_function_mlp"],
+    activation_function_gin=additional_config["activation_function_gin"],
+    aggregation_nodes_edges=additional_config["aggregation_nodes_edges"],
+    aggregation_global=additional_config["aggregation_global"],
+).to(device)
 
-model_path = "/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/trained_model/model_gin_torch_ensemble_run_all_location_tscaled_seed.pth"
+model_path = "/logging/trained_model/model_gin_torch_ensemble_run_all_location_tscaled_seed.pth"
 model_gin.load_state_dict(torch.load(model_path, map_location=device))
 model_gin.eval()
 
@@ -178,23 +173,27 @@ print(total_acc)
 # permutation feature importance
 def score_model(model, data, data_x, data_z):
     logits, out_sigmoid = model(data_x, data.edge_index, data.batch, data_z)
-    pred = logits #out_sigmoid
+    pred = logits  # out_sigmoid
     targets = data.y
-    #metric_score = BinaryAUROC()#.to(device)
-    metric_score = MeanSquaredError()#MeanAbsoluteError()#MeanSquaredError()
+    # metric_score = BinaryAUROC()#.to(device)
+    metric_score = MeanSquaredError()  # MeanAbsoluteError()#MeanSquaredError()
     return metric_score(pred, targets)
+
 
 score_orig = 0
 data_orig = 0
-for data in test_loader: 
-    if (data.edge_index[0].max() > len(data.batch)-1 or data.edge_index[1].max() > len(data.batch)-1): #not test and
+for data in test_loader:
+    if (
+        data.edge_index[0].max() > len(data.batch) - 1
+        or data.edge_index[1].max() > len(data.batch) - 1
+    ):  # not test and
         pass
     else:
         score_ = score_model(model_gin, data, data.x, data.edge_attr)
-        score_orig+=score_
-        data_orig+=1
-score_orig=score_orig/data_orig
-#print(f'score original (MSE): {score_orig}')
+        score_orig += score_
+        data_orig += 1
+score_orig = score_orig / data_orig
+# print(f'score original (MSE): {score_orig}')
 
 feat_importance = torch.empty(12, dtype=torch.float)
 
@@ -230,18 +229,30 @@ for i in range(0,num_node_feat):
 
 """
 
-edge_feat_names = ['impedance', 'reactance', 'I_NOM (nominal current)', 'to_netopening', 'init_I_cable', 'closed_I_cable', 'init_I_cable_/I_NOM', 'closed_I_cable_/I_NOM']
-num_edge_feat=8
-for i in range(0,num_edge_feat):
+edge_feat_names = [
+    "impedance",
+    "reactance",
+    "I_NOM (nominal current)",
+    "to_netopening",
+    "init_I_cable",
+    "closed_I_cable",
+    "init_I_cable_/I_NOM",
+    "closed_I_cable_/I_NOM",
+]
+num_edge_feat = 8
+for i in range(0, num_edge_feat):
     score_i = 0
     perm_d = 0
     count_pass = 0
     for d in test_loader:
-        if (d.edge_index[0].max() > len(d.batch)-1 or d.edge_index[1].max() > len(d.batch)-1): #not test and
+        if (
+            d.edge_index[0].max() > len(d.batch) - 1
+            or d.edge_index[1].max() > len(d.batch) - 1
+        ):  # not test and
             pass
             count_pass += 1
-        else: 
-            #random permute (shuffle) column i of dataset d
+        else:
+            # random permute (shuffle) column i of dataset d
             t = d.edge_attr.T[i]
             idx = torch.randperm(t.shape[0])
             t = t[idx].view(t.size())
@@ -249,15 +260,15 @@ for i in range(0,num_edge_feat):
                 print("true t:", torch.all(t.eq(d.edge_attr.T[i])))
             d_new_edge_attr = d.edge_attr
             d_new_edge_attr[:, i] = t
-            #compute score
+            # compute score
             score_i_d = score_model(model_gin, d, d.x, d_new_edge_attr)
-            score_i+=score_i_d
-            perm_d+=1
+            score_i += score_i_d
+            perm_d += 1
 
-    # importance column i 
-    perm_imp_i = score_orig - score_i/perm_d#len(test_loader)
-    #feat_importance[i+4] = perm_imp_i
-    print(f'importance edge feat {edge_feat_names[i]}({i}): {perm_imp_i}')
+    # importance column i
+    perm_imp_i = score_orig - score_i / perm_d  # len(test_loader)
+    # feat_importance[i+4] = perm_imp_i
+    print(f"importance edge feat {edge_feat_names[i]}({i}): {perm_imp_i}")
 
 print(feat_importance)
 feat_importance = feat_importance[0:8]

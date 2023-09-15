@@ -13,24 +13,23 @@ random.seed(2022)
 
 datasets = {
     "aalbuhn": "aalbuhn",
-    #"aalbuhn_small_changes": "aalbuhn_small_changes",
-    #"tmdl": "tmdl_data",
-    #"ap": "ap_data",
-    #"arnhem": "arnhem_data",
+    # "aalbuhn_small_changes": "aalbuhn_small_changes",
+    # "tmdl": "tmdl_data",
+    # "ap": "ap_data",
+    # "arnhem": "arnhem_data",
 }
 
 val_fold = 0
-normalise_data = False #False
-topology_changes = False #True
+normalise_data = False  # False
+topology_changes = False  # True
 undirected = True
-edge_classification = False
 
 # set parameters ----------
 for dataset_explore in datasets:
     if dataset_explore == "arnhem":
         samples_fold = 200
     else:
-        samples_fold = 10 #2000
+        samples_fold = 10  # 2000
 
     print(f"samples per fold: {samples_fold} \n")
 
@@ -43,19 +42,16 @@ for dataset_explore in datasets:
         normalise=normalise_data,
         different_topo=topology_changes,
         undirected=undirected,
-        edge_classification=edge_classification
     )
 
     # save data (griddata) ----------
-    #dataset = save_torch_dataset(
-    #    dataset, dataset_explore, samples_fold, topo=topology_changes, undir=undirected, norm=normalise_data, edge_class=edge_classification
-    #)
-    
-    #"""
+    # dataset = save_torch_dataset(
+    #    dataset, dataset_explore, samples_fold, topo=topology_changes, undir=undirected, norm=normalise_data,
+    # )
+
+    # """
     print("---> create data with data loader ")
-    train_loader = DataLoader(
-        dataset.train_graphs, batch_size=1, shuffle=True
-    )
+    train_loader = DataLoader(dataset.train_graphs, batch_size=1, shuffle=True)
     val_loader = DataLoader(dataset.val_graphs, batch_size=1, shuffle=True)
     test_loader = DataLoader(dataset.test_graphs, batch_size=1, shuffle=True)
 
@@ -74,4 +70,4 @@ for dataset_explore in datasets:
         )
         print(data)
         break
-    #"""
+    # """

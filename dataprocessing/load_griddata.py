@@ -4,7 +4,7 @@ import os
 
 import torch
 from torch_geometric.loader import DataLoader
-from custom_pyg_data import GridDataset
+from custompyg.pygenergydata import GridDataset
 
 datasets = {
     "aalbuhn": "aalbuhn",
@@ -15,7 +15,8 @@ datasets = {
     "all": "all",
 }
 
-os.chdir(os.getcwd() + "/dataprocessing")
+os.chdir(os.getcwd())  # + "/dataprocessing")
+
 
 def load_grid(
     dataset_explore,
@@ -24,8 +25,7 @@ def load_grid(
     small_part=False,
     normalise=False,
     different_topo=False,
-    undirected=False,
-    edge_classification=False,
+    undirected=False
 ):
     directory = os.getcwd()
 
@@ -38,8 +38,7 @@ def load_grid(
         small_part=small_part,
         normalise=normalise,
         different_topo=different_topo,
-        undirected=undirected,
-        edge_classification=edge_classification
+        undirected=undirected
     )
 
     """
@@ -48,20 +47,20 @@ def load_grid(
     print("validation graphs: ", len(dataset.val_graphs))
     print("test graphs: ", len(dataset.test_graphs))
     """
-    
+
     return dataset
 
 
 def load_dataloader(dataset, batchsize=64, shuffle=True):
     # put into DataLoader ----------
-    #print("---> create data with data loader ")
+    # print("---> create data with data loader ")
     train_loader = DataLoader(
         dataset.train_graphs, batch_size=batchsize, shuffle=shuffle
     )
     val_loader = DataLoader(dataset.val_graphs, batch_size=batchsize, shuffle=shuffle)
     test_loader = DataLoader(dataset.test_graphs, batch_size=batchsize, shuffle=shuffle)
 
-    #print("---> data in the train_loader ")
+    # print("---> data in the train_loader ")
     for data in train_loader:
         """
         print(
@@ -80,111 +79,110 @@ def load_dataloader(dataset, batchsize=64, shuffle=True):
         break
 
     return train_loader, val_loader, test_loader
-    
+
+
 def load_dataloader_sampler(dataset, sampler_train, sampler_val, batchsize=64):
     # put into DataLoader using a random subset sampler ----------
-    #print("---> create data with data loader (random subset sampler)")
+    # print("---> create data with data loader (random subset sampler)")
     train_loader = DataLoader(
         dataset.train_graphs, batch_size=batchsize, shuffle=False, sampler=sampler_train
     )
-    val_loader = DataLoader(dataset.val_graphs, batch_size=batchsize, shuffle=False, sampler=sampler_val)
+    val_loader = DataLoader(
+        dataset.val_graphs, batch_size=batchsize, shuffle=False, sampler=sampler_val
+    )
     test_loader = DataLoader(dataset.test_graphs, batch_size=batchsize, shuffle=True)
 
     return train_loader, val_loader, test_loader
 
 
-def save_torch_dataset(dataset, dataset_explore, samples_fold, topo=False, undir=False, norm=False, edge_class=False):
-    #print("---> saving data in torch file ")
-    if edge_class:
-        if topo and undir and norm:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_topo_undirected_norm_{samples_fold}.pt"
-        elif topo and undir:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_topo_undirected_{samples_fold}.pt"
-        elif topo and norm:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_topo_norm_{samples_fold}.pt"
-        elif norm and undir:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_undirected_norm_{samples_fold}.pt"
-        elif topo:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_topo_{samples_fold}.pt"
-        elif undir:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_undirected_{samples_fold}.pt"
-        elif norm:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_norm_{samples_fold}.pt"
-        else:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_{samples_fold}.pt"
-    else:
-        if topo and undir and norm:
+def save_torch_dataset(
+    dataset,
+    dataset_explore,
+    samples_fold,
+    topo=False,
+    undir=False,
+    norm=False
+):
+    if topo and undir and norm:
             location_save = f"data_pt/grid_data_{dataset_explore}_topo_undirected_norm_{samples_fold}.pt"
-        elif topo and undir:
-            location_save = f"data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
-        elif topo and norm:
-            location_save = f"data_pt/grid_data_{dataset_explore}_topo_norm_{samples_fold}.pt"
-        elif norm and undir:
-            location_save = f"data_pt/grid_data_{dataset_explore}_undirected_norm_{samples_fold}.pt"
-        elif topo:
-            location_save = f"data_pt/grid_data_{dataset_explore}_topo_{samples_fold}.pt"
-        elif undir:
-            location_save = f"data_pt/grid_data_{dataset_explore}_undirected_{samples_fold}.pt"
-        elif norm:
-            location_save = f"data_pt/grid_data_{dataset_explore}_norm_{samples_fold}.pt"
-        else:
+    elif topo and undir:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
+            )
+    elif topo and norm:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_topo_norm_{samples_fold}.pt"
+            )
+    elif norm and undir:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_undirected_norm_{samples_fold}.pt"
+            )
+    elif topo:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_topo_{samples_fold}.pt"
+            )
+    elif undir:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_undirected_{samples_fold}.pt"
+            )
+    elif norm:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_norm_{samples_fold}.pt"
+            )
+    else:
             location_save = f"data_pt/grid_data_{dataset_explore}_{samples_fold}.pt"
 
     torch.save(dataset, location_save)
 
 
-def load_torch_dataset(dataset_explore, samples_fold, topo=False, undir=False, norm=False, edge_class=False):
-    #print("---> loading data from torch file ")
-    #print("Topology changes: ", topo)
-    #print("Undirected: ", undir)
-    #print("Normalised: ", norm)
+def load_torch_dataset(
+    dataset_explore, samples_fold, topo=False, undir=False, norm=False,
+):
+    # print("---> loading data from torch file ")
+    # print("Topology changes: ", topo)
+    # print("Undirected: ", undir)
+    # print("Normalised: ", norm)
 
-    if edge_class:
-        if topo and undir and norm:
-            location_save = f"data_pt/grid_edge_data_{dataset_explore}_topo_undirected_norm_{samples_fold}.pt"
-        elif topo and undir:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_topo_undirected_{samples_fold}.pt"
-        elif topo and norm:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_topo_norm_{samples_fold}.pt"
-        elif norm and undir:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_undirected_norm_{samples_fold}.pt"
-        elif topo:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_topo_{samples_fold}.pt"
-        elif undir:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_undirected_{samples_fold}.pt"
-        elif norm:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_norm_{samples_fold}.pt"
-        else:
-            location_save = f"data_pt/grid_edge_{dataset_explore}_{samples_fold}.pt"
-    else:
-        if topo and undir and norm:
+    if topo and undir and norm:
             location_save = f"data_pt/grid_data_{dataset_explore}_topo_undirected_norm_{samples_fold}.pt"
-        elif topo and undir:
-            location_save = f"data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
-        elif topo and norm:
-            location_save = f"data_pt/grid_data_{dataset_explore}_topo_norm_{samples_fold}.pt"
-        elif norm and undir:
-            location_save = f"data_pt/grid_data_{dataset_explore}_undirected_norm_{samples_fold}.pt"
-        elif topo:
-            location_save = f"data_pt/grid_data_{dataset_explore}_topo_{samples_fold}.pt"
-        elif undir:
-            location_save = f"data_pt/grid_data_{dataset_explore}_undirected_{samples_fold}.pt"
-        elif norm:
-            location_save = f"data_pt/grid_data_{dataset_explore}_norm_{samples_fold}.pt"
-        else:
+    elif topo and undir:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
+            )
+    elif topo and norm:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_topo_norm_{samples_fold}.pt"
+            )
+    elif norm and undir:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_undirected_norm_{samples_fold}.pt"
+            )
+    elif topo:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_topo_{samples_fold}.pt"
+            )
+    elif undir:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_undirected_{samples_fold}.pt"
+            )
+    elif norm:
+            location_save = (
+                f"data_pt/grid_data_{dataset_explore}_norm_{samples_fold}.pt"
+            )
+    else:
             location_save = f"data_pt/grid_data_{dataset_explore}_{samples_fold}.pt"
 
-    #print("test")
-    #print(location_save)
+    # print("test")
+    # print(location_save)
     loaded_torch = torch.load(location_save)
 
-    #"""
-    #print("-- amount of (sub)graphs")
+    # """
+    # print("-- amount of (sub)graphs")
     print("dataset explore: ", dataset_explore)
     print("train graphs: ", len(loaded_torch.train_graphs))
     print("validation graphs: ", len(loaded_torch.val_graphs))
     print("test graphs: ", len(loaded_torch.test_graphs))
-    #"""
+    # """
 
     return loaded_torch
 
@@ -208,25 +206,42 @@ def concat_datagrid(data_1, data_2):
     return concat_data
 
 
-def load_multiple_grid(dataset_explore, samples_fold, norm=False, topo=False, undir=False, edge_class=False):
-    #print("---> loading multi data from torch file ")
+def load_multiple_grid(
+    dataset_explore, samples_fold, norm=False, topo=False, undir=False,
+):
+    # print("---> loading multi data from torch file ")
     print("Topology changes: ", topo)
     print("Undirected: ", undir)
     print("Normalised: ", norm)
-    #print("Edge classification (targets): ", edge_class)
-    
+
     if len(dataset_explore) > 1:
         dataset_1 = load_torch_dataset(
-            dataset_explore[0], samples_fold[0], topo=topo, undir=undir, norm=norm, edge_class=edge_class
+            dataset_explore[0],
+            samples_fold[0],
+            topo=topo,
+            undir=undir,
+            norm=norm,
         )
         dataset_2 = load_torch_dataset(
-            dataset_explore[1], samples_fold[1], topo=topo, undir=undir, norm=norm, edge_class=edge_class
+            dataset_explore[1],
+            samples_fold[1],
+            topo=topo,
+            undir=undir,
+            norm=norm,
         )
         dataset_3 = load_torch_dataset(
-            dataset_explore[2], samples_fold[2], topo=topo, undir=undir, norm=norm, edge_class=edge_class
+            dataset_explore[2],
+            samples_fold[2],
+            topo=topo,
+            undir=undir,
+            norm=norm,
         )
         dataset_4 = load_torch_dataset(
-            dataset_explore[3], samples_fold[3], topo=topo, undir=undir, norm=norm, edge_class=edge_class
+            dataset_explore[3],
+            samples_fold[3],
+            topo=topo,
+            undir=undir,
+            norm=norm,
         )
 
         concated_data = concat_datagrid(dataset_1, dataset_2)
@@ -236,6 +251,10 @@ def load_multiple_grid(dataset_explore, samples_fold, norm=False, topo=False, un
         data_all.test_targets = dataset_4.train_targets
     else:
         data_all = load_torch_dataset(
-            dataset_explore[0], samples_fold, topo=topo, undir=undir, norm=norm, edge_class=edge_class
+            dataset_explore[0],
+            samples_fold,
+            topo=topo,
+            undir=undir,
+            norm=norm,
         )
     return data_all

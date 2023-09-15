@@ -1,14 +1,4 @@
-dataprocessing/example_data/
-dataprocessing/data_pt/
- 
-single_overleaf.ipynb
 .DS_Store
-permutationfeatimportance.ipynb
-images/acc_l1_notopo.html
-images/acc_loo1.html
-images/acc_loo1_gin20.html
-images/calibration_loc2.html
-images/calibration_loc1.html
-images/calibration_loc3.html
-images/calibration_loc4.html
-vanilla_overleaf.ipynb
+inputdata/
+notebooks/
+logging/

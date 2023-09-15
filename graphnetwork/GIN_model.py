@@ -1,7 +1,6 @@
 # Building GIN using the GIN layers
 
 import torch
-import torch.nn.functional as F
 from torch.nn import (
     Linear,
     Sequential,
@@ -9,11 +8,10 @@ from torch.nn import (
     ReLU,
     Dropout,
     LeakyReLU,
-    Sigmoid,
 )
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 
-from graphneuralnet.GIN_layers import GIN_Conv, GINE_Conv
+from GIN_layers import GINE_Conv
 
 
 class GIN(torch.nn.Module):
@@ -24,7 +22,7 @@ class GIN(torch.nn.Module):
         hidden_channels_gin=16,
         out_channels_gin=16,
         hidden_channels_global=2,
-        out_channels_global=1, 
+        out_channels_global=1,
         num_layers=1,
         edge_features=True,
         edge_dim=8,
@@ -33,8 +31,7 @@ class GIN(torch.nn.Module):
         activation_function_gin="LeakyReLU",
         activation_function_mlp="LeakyReLU",
         aggregation_nodes_edges="max",
-        aggregation_global="max",
-        edge_classification=False,
+        aggregation_global="max"
     ):
 
         super().__init__()
@@ -45,7 +42,6 @@ class GIN(torch.nn.Module):
         self.activation_function_input_mlp = ReLU()
         self.activation_function_GIN = activation_function_gin
         self.aggregation_global = aggregation_global
-        self.edge_classification = edge_classification
 
         print(
             f"model input \n"
@@ -163,16 +159,13 @@ class GIN(torch.nn.Module):
         h_pool = h
 
         h = self.mlp_out(h_pool)
-        
-        if not self.edge_classification:
-            h_sigmoid = torch.sigmoid(h)
+
+        h_sigmoid = torch.sigmoid(h)
 
         return h, h_sigmoid
-        
+
     def compute_l1_loss(self, w):
-      return torch.abs(w).sum()
-      
+        return torch.abs(w).sum()
+
     def compute_l2_loss(self, w):
-      return torch.square(w).sum()
-
-
+        return torch.square(w).sum()

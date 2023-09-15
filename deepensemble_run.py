@@ -5,12 +5,12 @@ import random
 import torch
 import torch.nn.functional as F
 
-from GIN_model import GIN
-from load_griddata import load_dataloader, load_torch_dataset, load_multiple_grid, load_dataloader_sampler
-from calibrate_model import train_model, test_model, test_model_member, AUC_test
-from torch.utils.data import SubsetRandomSampler
-from functorch import combine_state_for_ensemble
-import sys
+from graphnetwork.GIN_model import GIN
+from load_griddata import (
+    load_dataloader,
+    load_multiple_grid,
+)
+from calibrate_model import train_model, test_model_member, AUC_test
 
 os.chdir(os.getcwd() + "/GINenergygrids")
 
@@ -22,18 +22,16 @@ print()
 torch.manual_seed(2023)
 print_log = True
 
-merged_dataset = True #False (single)
-normalise_features = False #True
+merged_dataset = True  # False (single)
+normalise_features = False  # True
 topo_changes = True
-undirected = True #True
+undirected = True  # True
 
-calibrate_temperature = False #False (already optimised)
-
-edge_classification = False
+calibrate_temperature = False  # False (already optimised)
 
 deep_ensemble = True
-bootstrap = True # if false, a different dataset is used for each ensemble member (extra for-loop)
-num_models = 10 #15 #amount of ensemble members, and data locations
+bootstrap = True  # if false, a different dataset is used for each ensemble member (extra for-loop)
+num_models = 10  # 15 #amount of ensemble members, and data locations
 
 save_plots = True
 logging = "None"  # or wandb
@@ -43,10 +41,10 @@ print(txt_name)
 # set parameters ----------
 if merged_dataset:
     dataset_explore = [
-        "aalbuhn_small_changes", #aalbuhn
-        "tmdl",#"ap",
+        "aalbuhn_small_changes",  # aalbuhn
+        "tmdl",  # "ap",
         "arnhem",
-        "ap",#"tmdl",
+        "ap",  # "tmdl",
     ]  # last one [-1] is the test data
     samples_fold = [2000, 2000, 200, 2000]  # TODO: make stand alone,
     print(
@@ -54,14 +52,13 @@ if merged_dataset:
     )
 else:
     print("Using a single dataset")
-    dataset_explore = ["aalbuhn_small_changes"]#aalbuhn
+    dataset_explore = ["aalbuhn_small_changes"]  # aalbuhn
     samples_fold = 2000
 
 base_config = {
     "normalise_data": normalise_features,
     "topo_changes": topo_changes,
     "undirected": undirected,
-    "edge_classification": edge_classification,
     "deep_ensemble": deep_ensemble,
     "bootstrap_de": bootstrap,
     "shuffle_data": True,
@@ -82,16 +79,16 @@ additional_config = {
     "activation_function_gin": "LeakyReLU",
     "aggregation_nodes_edges": "max",  # aggr=["mean", "add", "max"]
     "aggregation_global": "max",  # aggr=["mean", "add", "max"]
-    "epochs": 125, # 100, #150,
-    "num_layers": 15, #15,
-    "dropout": 0.15, #0.15,
-    "lr": 1e-6, #1e-5,
-    "weightdecay": 0.01, #0.001
+    "epochs": 125,  # 100, #150,
+    "num_layers": 15,  # 15,
+    "dropout": 0.15,  # 0.15,
+    "lr": 1e-6,  # 1e-5,
+    "weightdecay": 0.01,  # 0.001
     "optimizer": "adam",
-    "reduction_loss":"sum", #sum, mean
-    "l1_weight": 0.01, #0.001
-    "l2_weight": 0.01, #0.001
-    "temperature_init":0.9, #1.0, None
+    "reduction_loss": "sum",  # sum, mean
+    "l1_weight": 0.01,  # 0.001
+    "l2_weight": 0.01,  # 0.001
+    "temperature_init": 0.9,  # 1.0, None
 }
 
 additional_config.update(
@@ -100,7 +97,6 @@ additional_config.update(
 
 print(
     f"dataset explore: {additional_config['dataset_explore']} \n"
-    f"edge classification: {base_config['edge_classification']} \n"
     f"samples per fold: {additional_config['samples_fold']} \n"
     f"batch size: {additional_config['batch_size']} \n"
     f"topology changes: {base_config['topo_changes']} \n"
@@ -140,12 +136,11 @@ dataset = load_multiple_grid(
     topo=base_config["topo_changes"],
     undir=base_config["undirected"],
     norm=base_config["normalise_data"],
-    edge_class=base_config["edge_classification"]
 )
 
 train_loader, val_loader, test_loader = load_dataloader(
     dataset,
-    batchsize=1,#additional_config["batch_size"],
+    batchsize=1,  # additional_config["batch_size"],
     shuffle=base_config["shuffle_data"],
 )
 
@@ -154,19 +149,21 @@ print(len(train_loader))
 if base_config["bootstrap_de"]:
     num_train_examples = len(train_loader)
     num_val_examples = len(val_loader)
-    
-    print(f"subset samples: train ({num_train_examples}) and val ({num_val_examples}) examples")
-    
+
+    print(
+        f"subset samples: train ({num_train_examples}) and val ({num_val_examples}) examples"
+    )
+
     train_loader_sample = []
     val_loader_sample = []
-    
+
     for i in range(num_models):
         train_loader_i, val_loader_i, _ = load_dataloader(
             dataset,
             batchsize=additional_config["batch_size"],
             shuffle=base_config["shuffle_data"],
         )
-                
+
         train_loader_sample.append(train_loader_i)
         val_loader_sample.append(val_loader_i)
 
@@ -181,7 +178,8 @@ for loader in train_loader_sample:
         n_node_feat = data.num_node_features
         break
 
-def create_ensemble_member (seed):
+
+def create_ensemble_member(seed):
     torch.manual_seed(seed)
     model_gin_edges = GIN(
         in_channels_gin_x=n_node_feat,
@@ -198,9 +196,9 @@ def create_ensemble_member (seed):
         activation_function_gin=additional_config["activation_function_gin"],
         aggregation_nodes_edges=additional_config["aggregation_nodes_edges"],
         aggregation_global=additional_config["aggregation_global"],
-        edge_classification=base_config["edge_classification"]
     ).to(device)
     return model_gin_edges
+
 
 model_gin_edges = create_ensemble_member(ensemble_seeds[0])
 print(
@@ -222,7 +220,7 @@ for i in range(num_models):
     print(f"-- training ensemble {i}, with torch seed int({ensemble_seeds[i]})")
     torch.manual_seed(ensemble_seeds[i])
     model_gin_edges_i = ensemble_models[i]
-    
+
     train_model(
         model_gin_edges_i,
         train_loader_sample[i],
@@ -240,33 +238,41 @@ for i in range(num_models):
         reduction_loss=additional_config["reduction_loss"],
         l1_weight=additional_config["l1_weight"],
         l2_weight=additional_config["l2_weight"],
-        edge_classification=base_config["edge_classification"],
         temperature_init=additional_config["temperature_init"],
         calibrate_net=base_config["calibrate_net"],
     )
     ensemble_params[i] = model_gin_edges_i.parameters()
-    
-    total_loss, total_acc, BS_mean, pred_member = test_model_member(model_gin_edges_i, test_loader, txt_name, device, criterion=base_config["criterion"],
-        test=True,
-        reduction_loss=additional_config["reduction_loss"],
-        l1_weight=additional_config["l1_weight"],
-        l2_weight=additional_config["l2_weight"],
-        temperature=additional_config["temperature_init"])
-        
-    i_auc = AUC_test(model_gin_edges_i, test_loader, device,
+
+    total_loss, total_acc, BS_mean, pred_member = test_model_member(
+        model_gin_edges_i,
+        test_loader,
+        txt_name,
+        device,
         criterion=base_config["criterion"],
         test=True,
         reduction_loss=additional_config["reduction_loss"],
         l1_weight=additional_config["l1_weight"],
         l2_weight=additional_config["l2_weight"],
-        temperature=additional_config["temperature_init"]
+        temperature=additional_config["temperature_init"],
     )
-        
+
+    i_auc = AUC_test(
+        model_gin_edges_i,
+        test_loader,
+        device,
+        criterion=base_config["criterion"],
+        test=True,
+        reduction_loss=additional_config["reduction_loss"],
+        l1_weight=additional_config["l1_weight"],
+        l2_weight=additional_config["l2_weight"],
+        temperature=additional_config["temperature_init"],
+    )
+
     ensemble_pred[i] = pred_member
     ensemble_BS[i] = BS_mean
-    
+
     print(f"ensemble member {i}, BS score = {BS_mean}, AUC score = {i_auc}")
-    
+
 print(f"total variance of ensemble = {sum(ensemble_BS)/num_models}")
 
 # test gnn on other locations ----------

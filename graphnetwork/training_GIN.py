@@ -2,26 +2,31 @@
 
 import torch
 import torch.nn.functional as F
-from torchmetrics.classification import Accuracy, BinarySpecificity, BinaryRecall, BinaryPrecision, BinaryAccuracy
+from torchmetrics.classification import (
+    Accuracy,
+    BinaryRecall,
+    BinaryPrecision,
+    BinaryAccuracy,
+)
 import numpy as np
 import pickle
 import plotly.express as px
 
-def l1_l2_loss (model, l1_weight = 0.001, l2_weight = 0.001): #0.01
+
+def l1_l2_loss(model, l1_weight=0.001, l2_weight=0.001):  # 0.01
     parameters_model = []
     for param_ in model.parameters():
         parameters_model.append(param_.view(-1))
     l1_loss = l1_weight * model.compute_l1_loss(torch.cat(parameters_model))
     l2_loss = l2_weight * model.compute_l2_loss(torch.cat(parameters_model))
-    
-    return l1_loss+l2_loss
+    return l1_loss + l2_loss
 
 def train_model(
     model,
     loader,
     val_loader,
     test_loader,
-    device='cpu',
+    device="cpu",
     criterion=F.binary_cross_entropy,
     opt_lr=0.01,
     n_epochs=100,
@@ -34,13 +39,13 @@ def train_model(
     reduction_loss="mean",
     l1_weight=0.001,
     l2_weight=0.001,
-    edge_classification=False,
     *args,
 ):
 
-    
-    print(f"---> training the GNN with edge features on {device}, using edge classification ({edge_classification})")
-    
+    print(
+        f"---> training the GNN with edge features on {device})"
+    )
+
     acc_func_bin = BinaryAccuracy().to(device)
 
     # early stopping
@@ -81,10 +86,13 @@ def train_model(
 
         # train on batches
         for i, data in enumerate(loader):
-            if data.edge_index[0].max() > len(data.batch)-1 or data.edge_index[1].max() > len(data.batch)-1:
+            if (
+                data.edge_index[0].max() > len(data.batch) - 1
+                or data.edge_index[1].max() > len(data.batch) - 1
+            ):
                 pass
             else:
-                #print(data)
+                # print(data)
                 current_len_loader_train += 1
                 data = data.to(device)
                 model.train()
@@ -96,8 +104,8 @@ def train_model(
 
                 pred = out
                 targets = data.y
-                
-                #print(pred.size(), targets.size())
+
+                # print(pred.size(), targets.size())
 
                 loss_ce = criterion(pred, targets, reduction=reduction_loss)
                 l_loss = l1_l2_loss(model, l1_weight, l2_weight)
@@ -108,15 +116,21 @@ def train_model(
                 loss.backward()
                 optimizer.step()
 
-                #torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0) # gradient value clipping
+                # torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0) # gradient value clipping
 
                 total_train_loss += loss.item()
                 total_train_acc += acc.item()
 
         total_val_loss, total_val_acc = test_model(
-            model, val_loader, device, criterion, reduction_loss=reduction_loss, l1_weight=l1_weight, l2_weight=l2_weight
+            model,
+            val_loader,
+            device,
+            criterion,
+            reduction_loss=reduction_loss,
+            l1_weight=l1_weight,
+            l2_weight=l2_weight,
         )
-        
+
         # early stopping
         current_loss = total_val_loss
         if current_loss > last_loss:
@@ -127,7 +141,7 @@ def train_model(
         else:
             triggertimes = 0
         last_loss = current_loss
-        
+
         print(
             f"epoch: {epoch} | "
             f"train loss: {total_train_loss/current_len_loader_train:.2f} | "
@@ -135,27 +149,30 @@ def train_model(
             f"train acc: {total_train_acc/current_len_loader_train:.2f} | "
             f"val acc: {total_val_acc:.2f} "
         )
-        #print(f"--- Brier Score (mean, val): {BS_val}")
+        # print(f"--- Brier Score (mean, val): {BS_val}")
 
         if logging == "wandb":
-            wandb.log({"train loss": total_train_loss/len(loader)})
+            wandb.log({"train loss": total_train_loss / len(loader)})
             wandb.log({"val loss": total_val_loss})
             wandb.log({"val acc": total_val_acc})
         elif logging == "None":
             logging_result["step_train_val"] += 1
-            logging_result["loss_train"].append(total_train_loss/len(loader))
+            logging_result["loss_train"].append(total_train_loss / len(loader))
             logging_result["loss_val"].append(total_val_loss)
             logging_result["acc_val"].append(total_val_acc)
 
     test_loss, test_acc = test_model(
-        model, test_loader, device, criterion, reduction_loss=reduction_loss, l1_weight=l1_weight, l2_weight=l2_weight
+        model,
+        test_loader,
+        device,
+        criterion,
+        reduction_loss=reduction_loss,
+        l1_weight=l1_weight,
+        l2_weight=l2_weight,
     )
 
     if print_log:
-        print(
-            f"test loss: {test_loss:.2f} | "
-            f"test acc: {test_acc:.2f}% | "
-        )
+        print(f"test loss: {test_loss:.2f} | " f"test acc: {test_acc:.2f}% | ")
 
     if logging == "wandb":
         wandb.log({"test loss": test_loss})
@@ -191,25 +208,38 @@ def train_model(
 
 
 @torch.no_grad()
-def test_model(model, loader, device='cpu', criterion=F.binary_cross_entropy, reduction_loss="mean", l1_weight = 0.001, l2_weight = 0.001):
+def test_model(
+    model,
+    loader,
+    device="cpu",
+    criterion=F.binary_cross_entropy,
+    reduction_loss="mean",
+    l1_weight=0.001,
+    l2_weight=0.001,
+):
     total_loss = 0
     total_acc = 0
-    
+
     acc_func_bin = BinaryAccuracy().to(device)
-    
+
     model.eval()
 
     current_len_loader = 0
-    
+
     with torch.no_grad():
         for data in loader:
-            if data.edge_index[0].max() > len(data.batch)-1 or data.edge_index[1].max() > len(data.batch)-1:
+            if (
+                data.edge_index[0].max() > len(data.batch) - 1
+                or data.edge_index[1].max() > len(data.batch) - 1
+            ):
                 pass
             else:
-                #print(data)
+                # print(data)
                 current_len_loader += 1
                 data = data.to(device)
-                out_zero, out = model(data.x, data.edge_index, data.batch, data.edge_attr)
+                out_zero, out = model(
+                    data.x, data.edge_index, data.batch, data.edge_attr
+                )
 
                 pred = out
                 targets = data.y
@@ -222,42 +252,55 @@ def test_model(model, loader, device='cpu', criterion=F.binary_cross_entropy, re
 
                 total_loss += loss.item()
                 total_acc += acc.item()
-            
-        total_loss /= current_len_loader#len(loader)
-        total_acc /= current_len_loader#len(loader)
-    
+
+        total_loss /= current_len_loader  # len(loader)
+        total_acc /= current_len_loader  # len(loader)
 
     return total_loss, total_acc
-    
+
+
 @torch.no_grad()
-def test_model_member(model, loader, device='cpu', criterion=F.binary_cross_entropy, reduction_loss="mean", l1_weight = 0.001, l2_weight = 0.001):
+def test_model_member(
+    model,
+    loader,
+    device="cpu",
+    criterion=F.binary_cross_entropy,
+    reduction_loss="mean",
+    l1_weight=0.001,
+    l2_weight=0.001,
+):
     total_loss = 0
     total_acc = 0
-    
+
     acc_func_bin = BinaryAccuracy().to(device)
-    
+
     model.eval()
 
     current_len_loader = 0
-    
+
     BS_all = 0
     pred_member = []
-    
+
     with torch.no_grad():
         for data in loader:
-            if data.edge_index[0].max() > len(data.batch)-1 or data.edge_index[1].max() > len(data.batch)-1:
+            if (
+                data.edge_index[0].max() > len(data.batch) - 1
+                or data.edge_index[1].max() > len(data.batch) - 1
+            ):
                 pass
             else:
-                #print(data)
+                # print(data)
                 current_len_loader += 1
                 data = data.to(device)
-                out_zero, out = model(data.x, data.edge_index, data.batch, data.edge_attr)
+                out_zero, out = model(
+                    data.x, data.edge_index, data.batch, data.edge_attr
+                )
 
-                pred = out#_zero
+                pred = out  # _zero
                 pred_sigmoid = out
                 targets = data.y
-                
-                BS_part = (pred-targets)**2
+
+                BS_part = (pred - targets) ** 2
                 pred_member.append(pred)
 
                 loss_ce = criterion(pred_sigmoid, targets, reduction=reduction_loss)
@@ -269,10 +312,9 @@ def test_model_member(model, loader, device='cpu', criterion=F.binary_cross_entr
                 total_loss += loss.item()
                 total_acc += acc.item()
                 BS_all += BS_part
-            
-        total_loss /= current_len_loader#len(loader)
-        total_acc /= current_len_loader#len(loader)
-        BS_all /= current_len_loader
-        
-    return total_loss, total_acc, BS_all, pred_member
 
+        total_loss /= current_len_loader  # len(loader)
+        total_acc /= current_len_loader  # len(loader)
+        BS_all /= current_len_loader
+
+    return total_loss, total_acc, BS_all, pred_member
