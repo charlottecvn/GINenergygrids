@@ -31,7 +31,7 @@ class GIN(torch.nn.Module):
         activation_function_gin="LeakyReLU",
         activation_function_mlp="LeakyReLU",
         aggregation_nodes_edges="max",
-        aggregation_global="max"
+        aggregation_global="max",
     ):
 
         super().__init__()

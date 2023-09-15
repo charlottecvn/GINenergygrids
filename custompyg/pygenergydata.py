@@ -36,7 +36,7 @@ class GridDataset:
         small_part=False,
         normalise=False,
         different_topo=False,
-        undirected=False
+        undirected=False,
     ):
         """
         args:

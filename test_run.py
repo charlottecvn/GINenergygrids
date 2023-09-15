@@ -155,7 +155,9 @@ model_gin = GIN(
     aggregation_global=additional_config["aggregation_global"],
 ).to(device)
 
-model_path = "/logging/trained_model/model_gin_torch_ensemble_run_all_location_tscaled_seed.pth"
+model_path = (
+    "/logging/trained_model/model_gin_torch_ensemble_run_all_location_tscaled_seed.pth"
+)
 model_gin.load_state_dict(torch.load(model_path, map_location=device))
 model_gin.eval()
 

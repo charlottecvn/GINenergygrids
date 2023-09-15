@@ -21,6 +21,7 @@ def l1_l2_loss(model, l1_weight=0.001, l2_weight=0.001):  # 0.01
     l2_loss = l2_weight * model.compute_l2_loss(torch.cat(parameters_model))
     return l1_loss + l2_loss
 
+
 def train_model(
     model,
     loader,
@@ -42,9 +43,7 @@ def train_model(
     *args,
 ):
 
-    print(
-        f"---> training the GNN with edge features on {device})"
-    )
+    print(f"---> training the GNN with edge features on {device})")
 
     acc_func_bin = BinaryAccuracy().to(device)
 
