@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 
 from graphnetwork.GIN_model import GIN
-from load_griddata import (
+from dataprocessing.load_griddata import (
     load_dataloader,
     load_multiple_grid,
 )
@@ -55,7 +55,7 @@ else:
 base_config = {
     "normalise_data": normalise_features,
     "topo_changes": topo_changes,
-    "undirected": undirected
+    "undirected": undirected,
     "deep_ensemble": deep_ensemble,
     "bootstrap_de": bootstrap,
     "shuffle_data": True,
