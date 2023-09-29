@@ -2,13 +2,17 @@
 
 Code related to our paper: "Graph Isomorphic Networks for Assessing Reliability of the Medium-Voltage Grid." by Cambier van Nooten, C., van de Poll, T., Füllhase, S., Heres, J., Heskes, T., & Shapovalova, Y. (submitted to Power Systems Computation Conference 2024, PSCC).
 
-
 ![General pipeline of the proposed framework](illustrations/pipeline_gin.drawio.png)
 
 Graph Isomorphic Networks for assessing the N-1 principle on energy grids. Case study on a medium-voltage grid of a Distribution System Operator (DSO) in the Netherlands (Alliander). 
-This repository demonstrates the main algorithm in a barebone manner.
+Disclaimer : This code demonstrates the main algorithm in a barebone manner.
 
-###  GIN layer details
+## Datasets
+Real grid data (obtained from Alliander, DSO in the Netherlands) together with augmented data.
+
+## GIN framework 
+
+###  GIN layer details (supplementary material)
 See the figures below for complementary illustrations of the GIN equations mentioned in the paper.
 
 ![GIN block](illustrations/GINblock.drawio.png)
@@ -26,3 +30,17 @@ See the figures below for complementary illustrations of the GIN equations menti
 ![GIN block](illustrations/nodefeat_update.drawio.png)
 
 <sup><sub>Fig 4. Apply the first MLPs in the first layer ($k=0$). Apply aggregation (and combining in the second layer ($k=1$), for both the nodes and edges. For simplification, only the 1-hop neighbourhood of node $v$ is considered. In the real method, we considered these steps for all nodes and edges.</sub></sup>
+
+## Training 
+Create virtual environment
+
+``
+virtualenv ENV -p python3
+source ENV/bin/activate
+``
+
+Install requirements
+``
+pip install -r requirements
+``
+
