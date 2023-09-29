@@ -11,7 +11,7 @@ from torch.nn import (
 )
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 
-from GIN_layers import GINE_layer
+from GIN_layers import GINE_layer, MLPembd
 
 class GIN(torch.nn.Module):
     def __init__(
@@ -72,53 +72,46 @@ class GIN(torch.nn.Module):
             Linear(hidden_channels_global, out_channels_global),
         )
 
+        self.in_channels_gin_edge = in_channels_gin_edge
+        self.in_channels_gin_x = in_channels_gin_x
+        self.hidden_channels_gin = hidden_channels_gin
+
+        # INPUT GIN BLOCK (edges)
+        self.gin_MLP_layers.append(
+            Sequential(
+                Linear(self.in_channels_gin_edge, self.hidden_channels_gin),
+                self.activation_function_input_mlp,
+                Linear(self.hidden_channels_gin, self.hidden_channels_gin),
+                self.activation_function_input_mlp,
+                Linear(self.hidden_channels_gin, self.hidden_channels_gin),
+            )
+        )
+        # INPUT GIN BLOCK (nodes) --> see forward(..)
+
+        # CORE GIN BLOCK
         for i in range(num_layers):
-            if edge_features:
-                # INPUT GIN BLOCK (edges)
-                self.gin_MLP_layers.append(
-                    Sequential(
-                        Linear(in_channels_gin_edge, hidden_channels_gin),
-                        self.activation_function_input_mlp,
-                        Linear(hidden_channels_gin, hidden_channels_gin),
-                        self.activation_function_input_mlp,
-                        Linear(hidden_channels_gin, hidden_channels_gin),
-                    )
+            self.gin_MLP_layers.append(
+                GINE_layer(
+                    [hidden_channels_gin, hidden_channels_gin, hidden_channels_gin],
+                    train_eps=True,
+                    edge_dim=edge_dim,
+                    linear_learn=linear_learn,
+                    activation_function=self.activation_function_GIN,
+                    aggregation=aggregation_nodes_edges,
                 )
-                # INPUT GIN BLOCK (nodes)
-                self.gin_MLP_layers.append(
-                    Sequential(
-                        Linear(in_channels_gin_x, hidden_channels_gin),
-                        self.activation_function_input_mlp,
-                        Linear(hidden_channels_gin, hidden_channels_gin),
-                        self.activation_function_input_mlp,
-                        Linear(hidden_channels_gin, hidden_channels_gin),
-                    )
-                )
-                # CORE GIN BLOCK
-                self.gin_MLP_layers.append(
-                    GINE_layer(
-                        [hidden_channels_gin, hidden_channels_gin, hidden_channels_gin],
-                        train_eps=True,
-                        edge_dim=edge_dim,
-                        linear_learn=linear_learn,
-                        activation_function=self.activation_function_GIN,
-                        aggregation=aggregation_nodes_edges,
-                    )
-                )
-                # OUTPUT GIN BLOCK
-                self.gin_MLP_layers.append(
-                    Sequential(
-                        Linear(hidden_channels_gin, hidden_channels_gin),
-                        BatchNorm1d(hidden_channels_gin),
-                        self.activation_function_MLP,
-                        Dropout(dropout),
-                        Linear(hidden_channels_gin, hidden_channels_gin),
-                    )
-                )
-            else:
-                raise NotImplementedError
-            in_channels_gin_x = hidden_channels_gin
-            in_channels_gin_edge = hidden_channels_gin
+            )
+            
+        # OUTPUT GIN BLOCK
+        self.gin_MLP_layers.append(
+            Sequential(
+                Linear(hidden_channels_gin, hidden_channels_gin),
+                BatchNorm1d(hidden_channels_gin),
+                self.activation_function_MLP,
+                Dropout(dropout),
+                Linear(hidden_channels_gin, hidden_channels_gin),
+            )
+        )
+
 
     def forward(self, x, edge_index, batch, edge_attr):
         if self.aggregation_global == "add":
@@ -142,17 +135,19 @@ class GIN(torch.nn.Module):
         out_blocks = []
         start_block = 0
 
-        edge_attr = self.gin_MLP_layers[(start_block * 4) + 0](edge_attr)
-        x = self.gin_MLP_layers[(start_block * 4) + 1](x)
-        x = torch.matmul(edge_attr, x)  # Aggregating messages from neighbors
+        # Input embeddings
+        edge_attr = self.gin_MLP_layers[start_block](edge_attr)
+        x = MLPembd(self.in_channels_gin_x, self.hidden_channels_gin, self.activation_function_input_mlp)
+
+        # GIN layers
         for blocks_i in range(self.num_layers):
             if self.edge_features:
-                x, _ = self.gin_MLP_layers[(blocks_i * 4) + 2](x, edge_index, edge_attr)
+                x = self.gin_MLP_layers[(blocks_i)+1](x, edge_index, edge_attr)
                 out_blocks.append(x)
-        #TODO; add info edges
             else:
                 raise NotImplementedError
 
+        # Global
         h = aggregation(out_blocks[0], batch)
         for i in range(self.num_layers - 1):
             h_i = aggregation(out_blocks[i + 1], batch)

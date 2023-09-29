@@ -85,7 +85,8 @@ class GINE_layer(MessagePassing):
     def __init__(
         self,
         input_size: List[int] = [4, 2, 1],
-        eps: float = 0,
+        eps_edge: float = 0.0,
+        eps_node: float = 0.0,
         train_eps: bool = False,
         edge_dim: Optional[int] = None,
         linear_learn=True,
@@ -108,27 +109,39 @@ class GINE_layer(MessagePassing):
             self.activation_function_nn = ReLU()
             self.activation_function_message = torch.nn.functional.relu
 
-        nn = Sequential(
+        mlp3 = Sequential(
             Linear(input_size[0], input_size[1]),
             BatchNorm1d(input_size[1]),
             self.activation_function_nn,
             Linear(input_size[1], input_size[2]),
             self.activation_function_nn,
         )
-        self.nn = nn
-        self.initial_eps = eps
+
+        mlp4 = Sequential(
+            Linear(input_size[0], input_size[1]),
+            BatchNorm1d(input_size[1]),
+            self.activation_function_nn,
+            Linear(input_size[1], input_size[2]),
+            self.activation_function_nn,
+        )
+        self.mlp3 = mlp3
+        self.mlp4 = mlp4
+
+        self.initial_eps = eps_node
         self.linear_learning = linear_learn
         if train_eps:
-            self.eps = torch.nn.Parameter(torch.Tensor([eps]))
+            self.eps_node = torch.nn.Parameter(torch.Tensor([eps_node]))
+            self.eps_edge = torch.nn.Parameter(torch.Tensor([eps_edge]))
         else:
-            self.register_buffer("eps", torch.Tensor([eps]))
+            self.register_buffer("eps_node", torch.Tensor([eps_node]))
+            self.register_buffer("eps_edge", torch.Tensor([eps_edge]))
         if edge_dim is not None:
-            if isinstance(self.nn, torch.nn.Sequential):
-                nn = self.nn[0]
-            if hasattr(nn, "in_features"):
-                in_channels = nn.in_features
-            elif hasattr(nn, "in_channels"):
-                in_channels = nn.in_channels
+            if isinstance(self.mlp3, torch.nn.Sequential):
+                mlp3 = self.mlp3[0]
+            if hasattr(mlp3, "in_features"):
+                in_channels = mlp3.in_features
+            elif hasattr(mlp3, "in_channels"):
+                in_channels = mlp3.in_channels
             else:
                 raise ValueError("Could not infer input channels from `nn`.")
 
@@ -143,8 +156,12 @@ class GINE_layer(MessagePassing):
         self.reset_parameters()
 
     def reset_parameters(self):
-        reset(self.nn)
-        self.eps.data.fill_(self.initial_eps)
+        reset(self.mlp3)
+        reset(self.mlp4)
+
+        self.eps_node.data.fill_(self.initial_eps)
+        self.eps_edge.data.fill_(self.initial_eps)
+
         if self.lin is not None and self.linear_learning == True:
             self.lin.reset_parameters()
 
@@ -158,15 +175,15 @@ class GINE_layer(MessagePassing):
         if isinstance(x, Tensor):
             x: OptPairTensor = (x, x)
 
-        out = self.propagate(edge_index, x=x, edge_attr=edge_attr, size=size)
+        edge_r = edge_attr[1]
+        g_e = self.mlp3((1 + self.eps_edge) * edge_r)
+
+        a_v = self.propagate(edge_index, x=x, edge_attr=g_e, size=size)
 
         x_r = x[1]
-        edge_r = edge_attr[1]
-        if x_r is not None and edge_r is not None:
-            out_x = out + (1 + self.eps) * x_r
-            out_edge = (1 + self.eps) * edge_r
+        h_v = a_v + (1 + self.eps_node) * x_r
 
-        return self.nn(out_x), self.nn(out_edge)
+        return self.mlp4(h_v)
 
     def message(self, x_j: Tensor, edge_attr: Tensor) -> Tensor:
         if self.lin is None and x_j.size(-1) != edge_attr.size(-1):
@@ -176,9 +193,24 @@ class GINE_layer(MessagePassing):
                 "attribute of 'GINE_layer'"
             )
 
-        # Edges TODO: notimplemented error
-
         return self.activation_function_message(x_j + edge_attr)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(nn={self.nn})"
+
+class MLPembd(MessagePassing):
+    def __init__(self, in_channels, hidden_channels, activation):
+        super(MLPembd, self).__init__(aggr='sum')
+        self.mlp = Sequential(
+                        Linear(in_channels, hidden_channels),
+                        activation,
+                        Linear(hidden_channels, hidden_channels),
+                        activation,
+                        Linear(hidden_channels, hidden_channels),
+                    )
+
+    def forward(self, x, edge_index):
+        return self.propagate(edge_index=edge_index, x=x)
+
+    def message(self, input_):
+        return self.mlp(input_)
