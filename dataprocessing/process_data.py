@@ -12,11 +12,11 @@ from torch_geometric.loader import DataLoader
 random.seed(2022)
 
 datasets = {
-    "aalbuhn": "aalbuhn",
-    # "aalbuhn_small_changes": "aalbuhn_small_changes",
-    # "tmdl": "tmdl_data",
-    # "ap": "ap_data",
-    # "arnhem": "arnhem_data",
+    "location1": "location1",
+    # "location1_small_changes": "location1_small_changes",
+    # "location2": "location2_data",
+    # "location3": "location3_data",
+    # "location4": "location4_data",
 }
 
 val_fold = 0
@@ -26,7 +26,7 @@ undirected = True
 
 # set parameters ----------
 for dataset_explore in datasets:
-    if dataset_explore == "arnhem":
+    if dataset_explore == "location4":
         samples_fold = 200
     else:
         samples_fold = 10  # 2000

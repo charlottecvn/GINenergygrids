@@ -15,7 +15,7 @@ from torch_geometric.typing import OptPairTensor, Size
 from torch_sparse import SparseTensor, matmul
 
 
-class GIN_Conv(MessagePassing):
+class GIN_layer(MessagePassing):
     def __init__(
         self,
         input_size: List[int] = [4, 2, 1],
@@ -81,7 +81,7 @@ class GIN_Conv(MessagePassing):
         return f"{self.__class__.__name__}(nn={self.nn})"
 
 
-class GINE_Conv(MessagePassing):
+class GINE_layer(MessagePassing):
     def __init__(
         self,
         input_size: List[int] = [4, 2, 1],
@@ -161,24 +161,22 @@ class GINE_Conv(MessagePassing):
         out = self.propagate(edge_index, x=x, edge_attr=edge_attr, size=size)
 
         x_r = x[1]
-        if x_r is not None:
-            out = out + (1 + self.eps) * x_r
+        edge_r = edge_attr[1]
+        if x_r is not None and edge_r is not None:
+            out_x = out + (1 + self.eps) * x_r
+            out_edge = (1 + self.eps) * edge_r
 
-        return self.nn(out)
+        return self.nn(out_x), self.nn(out_edge)
 
     def message(self, x_j: Tensor, edge_attr: Tensor) -> Tensor:
         if self.lin is None and x_j.size(-1) != edge_attr.size(-1):
             raise ValueError(
                 "Node and edge feature dimensionalities do not "
                 "match. Consider setting the 'edge_dim' "
-                "attribute of 'GINEConv'"
+                "attribute of 'GINE_layer'"
             )
 
-        # if self.lin is not None:
-        # edge_attr = self.lin(edge_attr)
-        # edge_attr = Linear(edge_attr.size()[1], x_j.size()[1])(
-        #    edge_attr
-        # )  # TODO: notimplemented error
+        # Edges TODO: notimplemented error
 
         return self.activation_function_message(x_j + edge_attr)
 

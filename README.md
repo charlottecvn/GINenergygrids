@@ -1,5 +1,8 @@
 # GINenergygrids
 
+Code related to our paper: "Graph Isomorphic Networks for Assessing Reliability of the Medium-Voltage Grid." by Cambier van Nooten, C., van de Poll, T., Füllhase, S., Heres, J., Heskes, T., & Shapovalova, Y. (submitted to Power Systems Computation Conference 2024, PSCC).
+
+
 ![General pipeline of the proposed framework](illustrations/pipeline_gin.drawio.png)
 
 Graph Isomorphic Networks for assessing the N-1 principle on energy grids. Case study on a medium-voltage grid of a Distribution System Operator (DSO) in the Netherlands (Alliander). 

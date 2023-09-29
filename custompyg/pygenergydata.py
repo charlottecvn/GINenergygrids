@@ -14,14 +14,13 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 datasets = {
-    "aalbuhn": "aalbuhn",
-    "aalbuhn_small_changes": "aalbuhn_small_changes",
-    "tmdl": "tmdl_data",
-    "ap": "ap_data",
-    "arnhem": "arnhem_data",
+    "location1": "location1",
+    "location1_small_changes": "location1_small_changes",
+    "location2": "location2_data",
+    "location3": "location3_data",
+    "location4": "location4_data",
     "all": "all",
 }
-
 
 class GridDataset:
     """
@@ -70,7 +69,6 @@ class GridDataset:
 
         print("loading training data (example)")
         paths = []
-        # paths.append(os.path.join(self.directory, "example_grid"))
         for fold in os.listdir(self.directory):
             if not "fold_" in fold or int(fold.split("_")[1]) == self.val_fold:
                 continue
@@ -210,20 +208,17 @@ class GridDataset:
             if (
                 y_targets == 0.0 and different_topo
             ):  # removing edge/node pairs when different_topo=True
-                nodes, railkey2index, _ = self.get_nodes(path_i, remove_topo=True)
-                edges, senders, receivers = self.get_edges(path_i, railkey2index)
-                # print(len(nodes), len(edges))
+                nodes_topo, railkey2index_topo, _ = self.get_nodes(path_i, remove_topo=True)
+                edges_topo, senders_topo, receivers_topo = self.get_edges(path_i, railkey2index_topo)
             elif (
                 y_targets == 1.0 and different_topo
             ):  # adding edge/node pairs when different_topo=True
-                nodes, railkey2index, edges_org = self.get_nodes(path_i, add_topo=True)
-                edges, senders, receivers = self.get_edges_extra(
-                    edges_org, railkey2index
+                nodes_topo, railkey2index_topo, edges_org_topo = self.get_nodes(path_i, add_topo=True)
+                edges_topo, senders_topo, receivers_topo = self.get_edges_extra(
+                    edges_org_topo, railkey2index_topo
                 )
-                # print(len(nodes), len(edges))
-            else:
-                nodes, railkey2index, _ = self.get_nodes(path_i)
-                edges, senders, receivers = self.get_edges(path_i, railkey2index)
+            nodes, railkey2index, _ = self.get_nodes(path_i)
+            edges, senders, receivers = self.get_edges(path_i, railkey2index)
 
             x = torch.tensor(nodes, dtype=torch.float)
             edge_index = torch.tensor([senders, receivers], dtype=torch.long)
@@ -233,13 +228,18 @@ class GridDataset:
                 edge_index, edge_attr = torch_geometric.utils.to_undirected(
                     edge_index, edge_attr, reduce="mean"
                 )
-
-            # y_targets = torch.tensor(
-            #    self.get_targets_edge([path_i], input_data=edge_index[1], edge_indexs=True), dtype=torch.float
-            # )
-
             graphs = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y_targets)
             graphs_list.append(graphs)
+
+            if different_topo:
+                x = torch.tensor(nodes_topo, dtype=torch.float)
+                edge_index = torch.tensor([senders_topo, receivers_topo], dtype=torch.long)
+                edge_attr = torch.tensor(edges_topo, dtype=torch.float)
+                edge_index, edge_attr = torch_geometric.utils.to_undirected(
+                    edge_index, edge_attr, reduce="mean"
+                )
+                graphs = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y_targets)
+                graphs_list.append(graphs)
 
         return graphs_list
 
@@ -252,11 +252,11 @@ class GridDataset:
         for folder in os.listdir("example_data/aalbuhn"):
             if folder == "grid_structure":
                 continue
-            for iteration in os.listdir(os.path.join("example_data/aalbuhn", folder)):
+            for iteration in os.listdir(os.path.join("example_data/location1", folder)):
                 unswitchables = len(
                     pd.read_csv(
                         os.path.join(
-                            "example_data/aalbuhn",
+                            "example_data/location1",
                             folder,
                             iteration,
                             "unswitchables_by_capacities.csv",
@@ -338,12 +338,9 @@ class GridDataset:
                 for edge_nmin1 in location_nmin1:
                     edges_i[edge_nmin1] = 0.0
                 targets.append(edges_i)
-            # print(edges_i)
-            # print(targets)
         return targets
 
-    # TODO: change name node_df
-    def add_degree(self, path, node_df):
+    def add_degree(self, path, node_df, max_ = 20):
         """
         add the node degree as node feature to the node_df
 
@@ -384,8 +381,8 @@ class GridDataset:
         # remove or add edges (closed netopening)
         max_sample = len(candidates_)
         sample_random = random.randint(
-            0, min(max_sample, 20)
-        )  # maximum of 20 are deleted
+            0, min(max_sample, max_)
+        )
         candidate_nodes_edges = candidates_.sample(n=sample_random)
 
         return node_df, candidate_nodes_edges
@@ -438,6 +435,8 @@ class GridDataset:
                     node_df_topo.loc[[cand_i]].assign(**{"RAIL": rail_i * 10}),
                     ignore_index=True,
                 )
+                for i in node_df_topo["incoming"].loc[[cand_i]]:
+                    node_df_topo.loc[[cand_i]]=np.mean(node_df_topo["incoming"][:]) #ToDo: check correctness with private repo
                 node_pairs.append([rail_i, rail_i * 10])
 
         if remove_topo or add_topo:
@@ -452,7 +451,7 @@ class GridDataset:
 
         edges_org = 0
 
-        if add_topo:  # edge information
+        if add_topo:
             edges_org = pd.read_csv(os.path.join(path, "new_EDGES_ORG.csv"))
             edge_n = len(edges_org) + 2
             for i, cand_i in enumerate(list(index_candidates)):
@@ -664,6 +663,4 @@ class GridDataset:
             batch_graphs = graphs[start:end]
             batch_targets = targets[start:end]
 
-            # graphs_tuple = utils_tf.data_dicts_to_graphs_tuple(batch_graphs) #TODO: use for PyG
-
-            yield batch_targets  # graphs_tuple,
+            yield batch_targets

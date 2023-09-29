@@ -7,11 +7,11 @@ from torch_geometric.loader import DataLoader
 from custompyg.pygenergydata import GridDataset
 
 datasets = {
-    "aalbuhn": "aalbuhn",
-    "aalbuhn_small_changes": "aalbuhn_small_changes",
-    "tmdl": "tmdl_data",
-    "ap": "ap_data",
-    "arnhem": "arnhem_data",
+    "location1": "location1",
+    "location1_small_changes": "location1_small_changes",
+    "location2": "location2_data",
+    "location3": "location3_data",
+    "location4": "location4_data",
     "all": "all",
 }
 

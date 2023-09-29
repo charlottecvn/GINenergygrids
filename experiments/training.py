@@ -1,21 +1,10 @@
 import torch
 import torch.nn.functional as F
-from torch.nn import Sigmoid
 from torchmetrics.classification import (
-    Accuracy,
-    BinaryRecall,
-    BinaryPrecision,
     BinaryAccuracy,
-    BinaryAUROC,
-    BinaryCalibrationError,
-)
-import numpy as np
+    BinaryAUROC)
 import pickle
 import plotly.express as px
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from graphnetwork.GIN_model import GIN
-from sklearn.calibration import calibration_curve
 
 def l1_l2_loss(model, l1_weight=0.001, l2_weight=0.001):
     parameters_model = []
@@ -44,8 +33,6 @@ def train_model(
     reduction_loss="mean",
     l1_weight=0.001,
     l2_weight=0.001,
-    temperature_init=1.0,
-    calibrate_net=True,
     *args,
 ):
 
@@ -127,8 +114,7 @@ def train_model(
             criterion,
             reduction_loss=reduction_loss,
             l1_weight=l1_weight,
-            l2_weight=l2_weight,
-            temperature=temperature_init,
+            l2_weight=l2_weight
         )
 
         total_val_auc = AUC_test(
@@ -138,8 +124,7 @@ def train_model(
             criterion,
             reduction_loss=reduction_loss,
             l1_weight=l1_weight,
-            l2_weight=l2_weight,
-            temperature=temperature_init,
+            l2_weight=l2_weight
         )
 
         # early stopping
@@ -176,8 +161,7 @@ def train_model(
         criterion,
         reduction_loss=reduction_loss,
         l1_weight=l1_weight,
-        l2_weight=l2_weight,
-        temperature=temperature_init,
+        l2_weight=l2_weight
     )
     test_auc = AUC_test(
         model,
@@ -187,80 +171,23 @@ def train_model(
         test=True,
         reduction_loss=reduction_loss,
         l1_weight=l1_weight,
-        l2_weight=l2_weight,
-        temperature=temperature_init,
+        l2_weight=l2_weight
     )
-
-    if calibrate_net:
-        temperature_calibrated = temperature_calibration(
-            model=model, loader=test_loader, device=device, lr=1e-6
-        )
-        temperature_calibrated_val = temperature_calibration(
-            model=model, loader=val_loader, device=device, lr=1e-6
-        )
-        print(f"fitted temperature scaling parameter (test): {temperature_calibrated}")
-        print(
-            f"fitted temperature scaling parameter (val): {temperature_calibrated_val}"
-        )
-
-        test_loss_calibrated, test_acc_calibrated = test_model(
-            model,
-            test_loader,
-            device,
-            criterion,
-            reduction_loss=reduction_loss,
-            l1_weight=l1_weight,
-            l2_weight=l2_weight,
-            temperature=temperature_calibrated,
-        )
-        test_auc_calibrated = AUC_test(
-            model,
-            test_loader,
-            device,
-            criterion,
-            test=True,
-            reduction_loss=reduction_loss,
-            l1_weight=l1_weight,
-            l2_weight=l2_weight,
-            temperature=temperature_calibrated,
-        )
-    else:
-        test_loss_calibrated, test_acc_calibrated = test_model(
-            model,
-            test_loader,
-            device,
-            criterion,
-            reduction_loss=reduction_loss,
-            l1_weight=l1_weight,
-            l2_weight=l2_weight,
-            temperature=temperature_init,
-        )
-        test_auc_calibrated = AUC_test(
-            model,
-            test_loader,
-            device,
-            criterion,
-            test=True,
-            reduction_loss=reduction_loss,
-            l1_weight=l1_weight,
-            l2_weight=l2_weight,
-            temperature=temperature_init,
-        )
 
     if print_log:
         print(
             f"test loss: {test_loss:.2f} | "
             f"test acc: {test_acc:.2f}% | "
             f"test auc: {test_auc:.2f}% | "
-            f"test loss (calibrated): {test_loss_calibrated:.2f} | "
-            f"test acc (calibrated): {test_acc_calibrated:.2f}% | "
-            f"test auc (calibrated): {test_auc_calibrated:.2f}% | "
+            f"test loss (calibrated): {test_loss:.2f} | "
+            f"test acc (calibrated): {test_acc:.2f}% | "
+            f"test auc (calibrated): {test_auc:.2f}% | "
         )
 
     if logging == "None":
-        logging_result["loss_test"].append(test_loss_calibrated)
-        logging_result["acc_test"].append(test_acc_calibrated)
-        logging_result["auc_test"].append(test_auc_calibrated)
+        logging_result["loss_test"].append(test_loss)
+        logging_result["acc_test"].append(test_acc)
+        logging_result["auc_test"].append(test_auc)
 
     if print_log:
         with open(f"../logs/results/logging_result_{name_log}.pkl", "wb") as file:
@@ -272,7 +199,7 @@ def train_model(
         print(logging_result)
         fig = px.line(
             x=range(logging_result["step_train_val"]), y=logging_result["loss_train"]
-        )  # fig.add_scatter
+        )
         fig.write_html(f"../logs/figures/loss_train_{name_log}.html")
 
         fig = px.line(
@@ -297,8 +224,7 @@ def AUC_test(
     model,
     loader,
     device="cpu",
-    test=False,
-    temperature=None,
+    test=False
 ):
     total_auc = 0
     total_auc_2 = 0
@@ -328,13 +254,6 @@ def AUC_test(
                 pred = out_sigmoid
                 targets = data.y
 
-                if temperature is not None:
-                    if isinstance(temperature, float):
-                        out = logits / temperature
-                    else:
-                        out = logits.to(device) / temperature.to(device)
-                    pred = torch.sigmoid(out)
-
                 AUC = auc_func_bin(pred, targets)
 
                 total_auc += AUC.item()
@@ -356,16 +275,16 @@ def AUC_test(
 
 @torch.no_grad()
 def test_model(
-    model,
-    loader,
-    device="cpu",
-    criterion=F.binary_cross_entropy,
-    reduction_loss="mean",
-    l1_weight=0.001,
-    l2_weight=0.001,
-    temperature=None,
-):
-
+        model,
+        loader,
+        device="cpu",
+        test=False,
+        criterion=F.binary_cross_entropy,
+        reduction_loss="mean",
+        l1_weight=0.001,
+        l2_weight=0.001,
+        *args
+    ):
     total_loss = 0
     total_acc = 0
 
@@ -374,6 +293,9 @@ def test_model(
     model.eval()
 
     current_len_loader = 0
+
+    pred_ = []
+    target_ = []
 
     with torch.no_grad():
         for data in loader:
@@ -389,15 +311,8 @@ def test_model(
                     data.x, data.edge_index, data.batch, data.edge_attr
                 )
 
-                pred = out_sigmoid
                 targets = data.y
-
-                if temperature is not None:
-                    if isinstance(temperature, float):
-                        out = logits / temperature
-                    else:
-                        out = logits.to(device) / temperature.to(device)
-                    pred = torch.sigmoid(out)
+                pred = out_sigmoid
 
                 loss_ce = criterion(pred, targets, reduction=reduction_loss)
                 l_loss = l1_l2_loss(model, l1_weight, l2_weight)
@@ -407,100 +322,12 @@ def test_model(
 
                 total_loss += loss.item()
                 total_acc += acc.item()
-
-        total_loss /= current_len_loader
-        total_acc /= current_len_loader
-
-    return total_loss, total_acc
-
-
-@torch.no_grad()
-def test_model_member(
-    model,
-    loader,
-    name_log,
-    device="cpu",
-    criterion=F.binary_cross_entropy,
-    test=False,
-    reduction_loss="mean",
-    l1_weight=0.001,
-    l2_weight=0.001,
-    temperature=None,
-):
-
-    total_loss = 0
-    total_acc = 0
-
-    acc_func_bin = BinaryAccuracy().to(device)
-
-    model.eval()
-
-    current_len_loader = 0
-
-    BS_all = 0
-    pred_member = []
-    target_member = []
-
-    with torch.no_grad():
-        for data in loader:
-            if (
-                data.edge_index[0].max() > len(data.batch) - 1
-                or data.edge_index[1].max() > len(data.batch) - 1
-            ):
-                pass
-            else:
-                current_len_loader += 1
-                data = data.to(device)
-                logits, out_sigmoid = model(
-                    data.x, data.edge_index, data.batch, data.edge_attr
-                )
-
-                pred = out_sigmoid
-                targets = data.y
-
-                if temperature is not None:
-                    if isinstance(temperature, float):
-                        out = logits / temperature
-                    else:
-                        out = logits.to(device) / temperature.to(device)
-                    pred = torch.sigmoid(out)
-                else:
-                    out = logits
-
-                loss_ce = criterion(pred, targets, reduction=reduction_loss)
-                l_loss = l1_l2_loss(model, l1_weight, l2_weight)
-                loss = loss_ce + l_loss
-
-                BS_part = (pred - targets) ** 2
 
                 if test:
-                    pred_member.append(pred.item())
-                    target_member.append(targets.item())
-
-                acc = acc_func_bin(pred, targets)
-
-                total_loss += loss.item()
-                total_acc += acc.item()
-                BS_all += BS_part
-
-        if test:
-            """
-            #print(pred, out)
-            #draw_reliability_graph(pred, targets, name_log=name_log)
-            #print(target_member)
-            ECE, MCE = ECE_MCE(torch.as_tensor(pred_member), torch.as_tensor(target_member), n_bins=10)
-            print(f'ECE ({ECE}), MCE ({MCE})')
-            bins_true, bins_pred = calibration_curve(target_member, pred_member, n_bins=10) #.cpu().numpy()
-            #print(bins_true)
-            bins_true = [0.2, 0.4, 0.6, 0.8, 1.0]
-            draw_reliability_graph(bins_true, bins_pred, name_log=name_log)
-            """
-
-        print(f"current len loader (test): {current_len_loader}")
+                    pred_.append(pred.item())
+                    target_.append(targets.item())
 
         total_loss /= current_len_loader
         total_acc /= current_len_loader
-        BS_all /= current_len_loader
 
-    return total_loss, total_acc, BS_all, pred_member
-
+    return total_loss, total_acc, pred_

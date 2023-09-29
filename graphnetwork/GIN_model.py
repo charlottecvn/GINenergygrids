@@ -11,8 +11,7 @@ from torch.nn import (
 )
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 
-from GIN_layers import GINE_Conv
-
+from GIN_layers import GINE_layer
 
 class GIN(torch.nn.Module):
     def __init__(
@@ -75,16 +74,6 @@ class GIN(torch.nn.Module):
 
         for i in range(num_layers):
             if edge_features:
-                # INPUT GIN BLOCK (nodes)
-                self.gin_MLP_layers.append(
-                    Sequential(
-                        Linear(in_channels_gin_x, hidden_channels_gin),
-                        self.activation_function_input_mlp,
-                        Linear(hidden_channels_gin, hidden_channels_gin),
-                        self.activation_function_input_mlp,
-                        Linear(hidden_channels_gin, hidden_channels_gin),
-                    )
-                )
                 # INPUT GIN BLOCK (edges)
                 self.gin_MLP_layers.append(
                     Sequential(
@@ -95,9 +84,19 @@ class GIN(torch.nn.Module):
                         Linear(hidden_channels_gin, hidden_channels_gin),
                     )
                 )
+                # INPUT GIN BLOCK (nodes)
+                self.gin_MLP_layers.append(
+                    Sequential(
+                        Linear(in_channels_gin_x, hidden_channels_gin),
+                        self.activation_function_input_mlp,
+                        Linear(hidden_channels_gin, hidden_channels_gin),
+                        self.activation_function_input_mlp,
+                        Linear(hidden_channels_gin, hidden_channels_gin),
+                    )
+                )
                 # CORE GIN BLOCK
                 self.gin_MLP_layers.append(
-                    GINE_Conv(
+                    GINE_layer(
                         [hidden_channels_gin, hidden_channels_gin, hidden_channels_gin],
                         train_eps=True,
                         edge_dim=edge_dim,
@@ -142,13 +141,15 @@ class GIN(torch.nn.Module):
 
         out_blocks = []
         start_block = 0
-        x = self.gin_MLP_layers[(start_block * 4) + 0](x)
-        edge_attr = self.gin_MLP_layers[(start_block * 4) + 1](edge_attr)
+
+        edge_attr = self.gin_MLP_layers[(start_block * 4) + 0](edge_attr)
+        x = self.gin_MLP_layers[(start_block * 4) + 1](x)
+        x = torch.matmul(edge_attr, x)  # Aggregating messages from neighbors
         for blocks_i in range(self.num_layers):
             if self.edge_features:
-                x = self.gin_MLP_layers[(blocks_i * 4) + 2](x, edge_index, edge_attr)
-                # self.gin_MLP_layers[(blocks_i*4)+3](x)
+                x, _ = self.gin_MLP_layers[(blocks_i * 4) + 2](x, edge_index, edge_attr)
                 out_blocks.append(x)
+        #TODO; add info edges
             else:
                 raise NotImplementedError
 
