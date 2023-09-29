@@ -189,6 +189,7 @@ class GridDataset:
             )
 
     def get_graph_format(self, path, different_topo):
+        # ToDo: dislaimer, not the updated version
         """
         returns graph format for pygeometric
 
@@ -341,6 +342,7 @@ class GridDataset:
         return targets
 
     def add_degree(self, path, node_df, max_ = 20):
+        # ToDo: dislaimer, not the updated version
         """
         add the node degree as node feature to the node_df
 
@@ -388,6 +390,7 @@ class GridDataset:
         return node_df, candidate_nodes_edges
 
     def get_nodes(self, path, remove_topo=False, add_topo=False):
+        # ToDo: dislaimer, not the updated version
         """
         read and return a list of node features
         - node features: [POWER_CONSUMPTION, init_U_MSR, closed_U_MSR, degree]
@@ -436,7 +439,7 @@ class GridDataset:
                     ignore_index=True,
                 )
                 for i in node_df_topo["incoming"].loc[[cand_i]]:
-                    node_df_topo.loc[[cand_i]]=np.mean(node_df_topo["incoming"][:]) #ToDo: check correctness with private repo
+                    node_df_topo.loc[[cand_i]]=np.mean(node_df_topo["incoming"][:])
                 node_pairs.append([rail_i, rail_i * 10])
 
         if remove_topo or add_topo:
@@ -471,6 +474,7 @@ class GridDataset:
         return nodes, railkey2index, edges_org
 
     def get_edges_extra(self, file, railkey2index):
+        # ToDo: dislaimer, not the updated version
         """
         read in and return lists of edge features, senders and receivers as required to create graph_dicts
         - receivers[i] receives edges[i] from senders[i]
@@ -545,6 +549,7 @@ class GridDataset:
         return edges, senders, receivers
 
     def get_edges(self, path, railkey2index):
+        # ToDo: dislaimer, not the updated version
         """
         read in and return lists of edge features, senders and receivers as required to create graph_dicts
         - receivers[i] receives edges[i] from senders[i]

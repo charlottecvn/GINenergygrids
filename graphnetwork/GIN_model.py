@@ -100,7 +100,7 @@ class GIN(torch.nn.Module):
                     aggregation=aggregation_nodes_edges,
                 )
             )
-            
+
         # OUTPUT GIN BLOCK
         self.gin_MLP_layers.append(
             Sequential(
