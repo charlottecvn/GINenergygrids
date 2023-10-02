@@ -189,7 +189,7 @@ class GridDataset:
             )
 
     def get_graph_format(self, path, different_topo):
-        # ToDo: dislaimer, not the updated version
+        # ToDo: dislaimer, not the updated version for data augmentation
         """
         returns graph format for pygeometric
 
@@ -342,7 +342,7 @@ class GridDataset:
         return targets
 
     def add_degree(self, path, node_df, max_ = 20):
-        # ToDo: dislaimer, not the updated version
+        # ToDo: dislaimer, not the updated version for data augmentation
         """
         add the node degree as node feature to the node_df
 
@@ -390,7 +390,7 @@ class GridDataset:
         return node_df, candidate_nodes_edges
 
     def get_nodes(self, path, remove_topo=False, add_topo=False):
-        # ToDo: dislaimer, not the updated version
+        # ToDo: dislaimer, not the updated version for data augmentation
         """
         read and return a list of node features
         - node features: [POWER_CONSUMPTION, init_U_MSR, closed_U_MSR, degree]
@@ -474,7 +474,7 @@ class GridDataset:
         return nodes, railkey2index, edges_org
 
     def get_edges_extra(self, file, railkey2index):
-        # ToDo: dislaimer, not the updated version
+        # ToDo: dislaimer, not the updated version for data augmentation
         """
         read in and return lists of edge features, senders and receivers as required to create graph_dicts
         - receivers[i] receives edges[i] from senders[i]
@@ -549,7 +549,7 @@ class GridDataset:
         return edges, senders, receivers
 
     def get_edges(self, path, railkey2index):
-        # ToDo: dislaimer, not the updated version
+        # ToDo: dislaimer, not the updated version for data augmentation
         """
         read in and return lists of edge features, senders and receivers as required to create graph_dicts
         - receivers[i] receives edges[i] from senders[i]
