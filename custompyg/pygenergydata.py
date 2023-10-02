@@ -376,7 +376,7 @@ class GridDataset:
         node_df.rename(columns={"edge": "incoming"}, inplace=True)
 
         # add incoming and outgoing edges to get degree
-        candidates_ = node_df.loc[node_df["outgoing"] <= 0]
+        candidates_ = node_df.loc[node_df["outgoing"] <= 1] #0
         node_df["degree"] = node_df["incoming"] + node_df["outgoing"]
         node_df.drop(columns=["incoming", "outgoing"], inplace=True)
 
@@ -388,6 +388,24 @@ class GridDataset:
         candidate_nodes_edges = candidates_.sample(n=sample_random)
 
         return node_df, candidate_nodes_edges
+
+    def recompute_feat(self, graph, graph_aug, node_features, edge_features):
+        # ToDo: dislaimer, not the updated version for data augmentation
+        """
+        recomputes feature values (nodes and edges), based on data augmentation to the topology
+
+        args:
+            graph
+            graph_aug: augmented graph structure
+            node_features
+            edge_features
+
+        returns:
+            node_features
+            edge_features
+        """
+        raise NotImplementedError
+        #return [node_features, edge_features]
 
     def get_nodes(self, path, remove_topo=False, add_topo=False):
         # ToDo: dislaimer, not the updated version for data augmentation
@@ -438,8 +456,9 @@ class GridDataset:
                     node_df_topo.loc[[cand_i]].assign(**{"RAIL": rail_i * 10}),
                     ignore_index=True,
                 )
-                for i in node_df_topo["incoming"].loc[[cand_i]]:
-                    node_df_topo.loc[[cand_i]]=np.mean(node_df_topo["incoming"][:])
+                node_df = recompute_feat()
+                #for i in node_df_topo["incoming"].loc[[cand_i]]:
+                    #node_df_topo.loc[[cand_i]]=np.mean(node_df_topo["incoming"][:])
                 node_pairs.append([rail_i, rail_i * 10])
 
         if remove_topo or add_topo:

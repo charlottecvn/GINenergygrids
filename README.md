@@ -6,7 +6,7 @@ Code related to our paper: "Graph Isomorphic Networks for Assessing Reliability 
 
 Graph Isomorphic Networks for assessing the N-1 principle on energy grids. Case study on a medium-voltage grid of a Distribution System Operator (DSO) in the Netherlands (Alliander). 
 
-Disclaimer : This code demonstrates the main algorithm in a barebone manner.
+Disclaimer : This code demonstrates the main algorithm (GIN) in a barebone manner. Please contact us if there are any questions.
 
 ## Datasets
 Real grid data (obtained from Alliander, DSO in the Netherlands) together with augmented data.
