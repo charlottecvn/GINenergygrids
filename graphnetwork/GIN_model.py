@@ -11,7 +11,7 @@ from torch.nn import (
 )
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 
-from GIN_layers import GINE_layer, MLPembd
+from graphnetwork.GIN_layers import GINE_layer, MLPembd
 
 class GIN(torch.nn.Module):
     def __init__(
@@ -137,7 +137,7 @@ class GIN(torch.nn.Module):
 
         # Input embeddings
         edge_attr = self.gin_MLP_layers[start_block](edge_attr)
-        x = MLPembd(self.in_channels_gin_x, self.hidden_channels_gin, self.activation_function_input_mlp)
+        x = MLPembd(self.in_channels_gin_x, self.hidden_channels_gin, self.activation_function_input_mlp)(x, edge_index)
 
         # GIN layers
         for blocks_i in range(self.num_layers):

@@ -1,14 +1,16 @@
 import os
+import sys
 import torch
 import torch.nn.functional as F
-
+sys.path.append('/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/')
 from graphnetwork.GIN_model import GIN
 from experiments.training import train_model, test_model, AUC_test
 from dataprocessing.load_griddata import (
     load_dataloader,
     load_multiple_grid,
 )
-os.chdir(os.getcwd())  # + "/GINenergygrids")
+
+#os.chdir(os.getcwd())#+ "/GINenergygrids")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -30,10 +32,10 @@ print(txt_name)
 # set parameters ----------
 if merged_dataset:
     dataset_explore = [
-        "location1_small_changes",
+        "location5",
         "location2",
-        "location4",
         "location3",
+        "location4",
     ]  # last one [-1] is the test data
     samples_fold = [2000, 2000, 200, 2000]  # TODO: make stand alone,
     print(
@@ -42,7 +44,7 @@ if merged_dataset:
     )
 else:
     print("Using a single dataset")
-    dataset_explore = ["location1_small_changes"]
+    dataset_explore = ["location5"]
     samples_fold = 2000
 
 base_config = {
@@ -188,6 +190,8 @@ train_model(
     l1_weight=additional_config["l1_weight"],
     l2_weight=additional_config["l2_weight"]
 )
+
+torch.save(model_gin_edges.state_dict(), f"logs/models/model_gin_torch_{txt_name}.pth")
 
 total_loss, total_acc, pred_ = test_model(
     model_gin_edges,

@@ -175,7 +175,7 @@ class GINE_layer(MessagePassing):
         if isinstance(x, Tensor):
             x: OptPairTensor = (x, x)
 
-        edge_r = edge_attr[1]
+        edge_r = edge_attr#[1]
         g_e = self.mlp3((1 + self.eps_edge) * edge_r)
 
         a_v = self.propagate(edge_index, x=x, edge_attr=g_e, size=size)
@@ -212,5 +212,5 @@ class MLPembd(MessagePassing):
     def forward(self, x, edge_index):
         return self.propagate(edge_index=edge_index, x=x)
 
-    def message(self, input_):
-        return self.mlp(input_)
+    def message(self, x_i):  # Changed from input_ to x_i
+        return self.mlp(x_i)

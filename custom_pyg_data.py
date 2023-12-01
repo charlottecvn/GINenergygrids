@@ -15,10 +15,10 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 datasets = {
     "location1": "location1",
-    "location1_small_changes": "location1_small_changes",
-    "location2": "location2_data",
-    "location3": "location3_data",
-    "location4": "location4_data",
+    "location5": "location5",
+    "location2": "location2",
+    "location3": "location3",
+    "location4": "location4",
     "all": "all",
 }
 
@@ -456,7 +456,7 @@ class GridDataset:
                     node_df_topo.loc[[cand_i]].assign(**{"RAIL": rail_i * 10}),
                     ignore_index=True,
                 )
-                node_df = recompute_feat()
+                #node_df = recompute_feat()
                 #for i in node_df_topo["incoming"].loc[[cand_i]]:
                     #node_df_topo.loc[[cand_i]]=np.mean(node_df_topo["incoming"][:])
                 node_pairs.append([rail_i, rail_i * 10])

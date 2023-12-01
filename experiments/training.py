@@ -324,6 +324,7 @@ def test_model(
                 total_acc += acc.item()
 
                 if test:
+                    print(pred_, pred.item())
                     pred_.append(pred.item())
                     target_.append(targets.item())
 

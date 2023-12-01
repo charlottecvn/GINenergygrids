@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="Black">
+    <option name="pathToExecutable" value="$USER_HOME$/anaconda3/bin/black" />
+    <option name="sdkUUID" value="fb05142e-67c5-4b67-8690-912f96c3bfe9" />
+  </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.9 (GINenergygrids)" project-jdk-type="Python SDK" />
 </project>
