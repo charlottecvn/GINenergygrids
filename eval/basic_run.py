@@ -2,7 +2,8 @@ import os
 import sys
 import torch
 import torch.nn.functional as F
-sys.path.append('/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/')
+sys.path.append('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
+
 from graphnetwork.GIN_model import GIN
 from experiments.training import train_model, test_model, AUC_test
 from dataprocessing.load_griddata import (
@@ -10,11 +11,14 @@ from dataprocessing.load_griddata import (
     load_multiple_grid,
 )
 
-#os.chdir(os.getcwd())#+ "/GINenergygrids")
+os.chdir('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
+print(os.getcwd())
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 print()
+
+n_epochs = 2
 
 torch.manual_seed(2023)
 print_log = True
@@ -68,7 +72,7 @@ additional_config = {
     "activation_function_gin": "LeakyReLU",
     "aggregation_nodes_edges": "max",  # aggr=["mean", "add", "max"]
     "aggregation_global": "max",  # aggr=["mean", "add", "max"]
-    "epochs": 125,  # 100, #150,
+    "epochs": n_epochs,  # 100, #150,
     "num_layers": 15,  # 15,
     "dropout": 0.15,  # 0.15,
     "lr": 1e-6,  # 1e-5,
@@ -169,12 +173,12 @@ print(
     sum([param.nelement() for param in model_gin_edges.parameters()]),
 )
 
-torch.save(model_gin_edges.state_dict(), f"logs/models/model_gin_torch_{txt_name}.pth")
+torch.save(model_gin_edges.state_dict(), f"../logs/models/model_gin_torch_{txt_name}.pth")
 
 # train gnn ----------
 train_model(
     model_gin_edges,
-    train_loader,
+    train_loader,  
     val_loader,
     test_loader,
     device,
@@ -191,7 +195,7 @@ train_model(
     l2_weight=additional_config["l2_weight"]
 )
 
-torch.save(model_gin_edges.state_dict(), f"logs/models/model_gin_torch_{txt_name}.pth")
+torch.save(model_gin_edges.state_dict(), f"../logs/models/model_gin_torch_{txt_name}.pth")
 
 total_loss, total_acc, pred_ = test_model(
     model_gin_edges,

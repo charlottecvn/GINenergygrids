@@ -207,7 +207,7 @@ class MLPembd(MessagePassing):
                         Linear(hidden_channels, hidden_channels),
                         activation,
                         Linear(hidden_channels, hidden_channels),
-                    )
+                    )#.to(device)
 
     def forward(self, x, edge_index):
         return self.propagate(edge_index=edge_index, x=x)

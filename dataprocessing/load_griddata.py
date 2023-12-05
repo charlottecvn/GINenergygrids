@@ -142,7 +142,7 @@ def load_torch_dataset(
         location_save = f"inputdata/data_pt/grid_data_{dataset_explore}_topo_undirected_norm_{samples_fold}.pt"
     elif topo and undir:
         location_save = (
-            f"inputdata/data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
+            f"/inputdata/data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
         )
     elif topo and norm:
         location_save = (
@@ -163,9 +163,17 @@ def load_torch_dataset(
     else:
         location_save = f"inputdata/data_pt/grid_data_{dataset_explore}_{samples_fold}.pt"
 
-    # print("test")
-    # print(location_save)
-    loaded_torch = torch.load(location_save)
+    """
+    print(location_save)
+    print(os.getcwd()+location_save)
+    if os.getcwd()+location_save == "/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/inputdata/data_pt/grid_data_location5_topo_undirected_2000.pt":
+        print("!true string match")
+    else:
+        print("!false no string match")
+    """
+    pt_location = os.getcwd()+location_save
+    print(pt_location)
+    loaded_torch = torch.load(pt_location)
 
     # """
     # print("-- amount of (sub)graphs")

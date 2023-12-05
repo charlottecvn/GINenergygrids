@@ -90,7 +90,7 @@ def train_model(
 
                 out_zero, out = model(
                     data.x, data.edge_index, data.batch, data.edge_attr
-                )
+                ).to(device)
 
                 pred = out
                 targets = data.y
