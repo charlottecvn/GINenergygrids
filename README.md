@@ -1,6 +1,11 @@
+In progress: hyperparameter tuning, network architecture options (e.g., opt out edge features, gnn layer options), and data augmentations.
+
+Extensions: 
+
+
 # GINenergygrids
 
-Code related to our paper: "Graph Isomorphic Networks for Assessing Reliability of the Medium-Voltage Grid." by Cambier van Nooten, C., van de Poll, T., Füllhase, S., Heres, J., Heskes, T., & Shapovalova, Y. (submitted to Power Systems Computation Conference 2024, PSCC).
+Code related to our [paper](https://arxiv.org/abs/2310.01181): "Graph Isomorphic Networks for Assessing Reliability of the Medium-Voltage Grid." by Cambier van Nooten, C., van de Poll, T., Füllhase, S., Heres, J., Heskes, T., & Shapovalova, Y. 
 
 ![General pipeline of the proposed framework](illustrations/pipeline_gin.drawio.png)
 
