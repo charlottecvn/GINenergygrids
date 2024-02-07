@@ -31,6 +31,7 @@ class GIN(torch.nn.Module):
         activation_function_mlp="LeakyReLU",
         aggregation_nodes_edges="max",
         aggregation_global="max",
+        device="cuda:o",
     ):
 
         super().__init__()
@@ -41,6 +42,7 @@ class GIN(torch.nn.Module):
         self.activation_function_input_mlp = ReLU()
         self.activation_function_GIN = activation_function_gin
         self.aggregation_global = aggregation_global
+        self.device = device
 
         print(
             f"model input \n"
@@ -84,9 +86,17 @@ class GIN(torch.nn.Module):
                 Linear(self.hidden_channels_gin, self.hidden_channels_gin),
                 self.activation_function_input_mlp,
                 Linear(self.hidden_channels_gin, self.hidden_channels_gin),
-            )
+            ).to(self.device)
         )
         # INPUT GIN BLOCK (nodes) --> see forward(..)
+        self.node_embd = Sequential(
+            Linear(self.in_channels_gin_x, self.hidden_channels_gin),
+            self.activation_function_input_mlp,
+            Linear(self.hidden_channels_gin, self.hidden_channels_gin),
+            self.activation_function_input_mlp,
+            Linear(self.hidden_channels_gin, self.hidden_channels_gin),
+        ).to(self.device)
+        
 
         # CORE GIN BLOCK
         for i in range(num_layers):
@@ -98,7 +108,7 @@ class GIN(torch.nn.Module):
                     linear_learn=linear_learn,
                     activation_function=self.activation_function_GIN,
                     aggregation=aggregation_nodes_edges,
-                )
+                ).to(self.device)
             )
 
         # OUTPUT GIN BLOCK
@@ -109,7 +119,7 @@ class GIN(torch.nn.Module):
                 self.activation_function_MLP,
                 Dropout(dropout),
                 Linear(hidden_channels_gin, hidden_channels_gin),
-            )
+            ).to(self.device)
         )
 
 
@@ -136,9 +146,18 @@ class GIN(torch.nn.Module):
         start_block = 0
 
         # Input embeddings
+        x = x.to(self.device)
+        edge_index = edge_index.to(self.device)
+        edge_attr = edge_attr.to(self.device)
+        
         edge_attr = self.gin_MLP_layers[start_block](edge_attr)
-        x = MLPembd(self.in_channels_gin_x, self.hidden_channels_gin, self.activation_function_input_mlp)(x, edge_index)
+        
+        MLPembd_ = MLPembd(self.in_channels_gin_x, self.hidden_channels_gin, self.activation_function_input_mlp).to(self.device)
+        x = MLPembd_(x, edge_index)
+        #(self.in_channels_gin_x, self.hidden_channels_gin, self.activation_function_input_mlp)(x, edge_index)
 
+        #x = node_embd(x)
+        
         # GIN layers
         for blocks_i in range(self.num_layers):
             if self.edge_features:

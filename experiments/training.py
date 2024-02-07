@@ -6,6 +6,14 @@ from torchmetrics.classification import (
 import pickle
 import plotly.express as px
 
+def check_model_device(model):
+    devices = {p.device for p in model.parameters()}
+    if len(devices) > 1:
+        print("Model parameters are on multiple devices:", devices)
+    else:
+        print("All model parameters are on the same device:", devices.pop())
+
+
 def l1_l2_loss(model, l1_weight=0.001, l2_weight=0.001):
     parameters_model = []
     for param_ in model.parameters():
@@ -20,7 +28,7 @@ def train_model(
     loader,
     val_loader,
     test_loader,
-    device="cpu",
+    device="cuda:0",
     criterion=F.binary_cross_entropy,
     opt_lr=0.01,
     n_epochs=100,
@@ -74,23 +82,37 @@ def train_model(
         total_train_acc = 0
 
         current_len_loader_train = 0
+        
+        print(f"start epoch {epoch}")
 
         # train on batches
+        #print(f"lenght loader {len(loader)}")
         for i, data in enumerate(loader):
             if (
                 data.edge_index[0].max() > len(data.batch) - 1
                 or data.edge_index[1].max() > len(data.batch) - 1
             ):
+                #print('passing')
                 pass
             else:
+                #print(f'start training for data in loader on {device}')
                 current_len_loader_train += 1
                 data = data.to(device)
+                
+                #check_model_device(model)
+                
+                model = model.to(device)
+                data.x = data.x.to(device)
+                data.edge_index = data.edge_index.to(device)
+                data.batch = data.batch.to(device)
+                data.edge_attr = data.edge_attr.to(device)
+                
                 model.train()
                 optimizer.zero_grad()
-
+                
                 out_zero, out = model(
                     data.x, data.edge_index, data.batch, data.edge_attr
-                ).to(device)
+                )
 
                 pred = out
                 targets = data.y
@@ -121,10 +143,10 @@ def train_model(
             model,
             val_loader,
             device,
-            criterion,
-            reduction_loss=reduction_loss,
-            l1_weight=l1_weight,
-            l2_weight=l2_weight
+            #criterion,
+            #reduction_loss=reduction_loss,
+            #l1_weight=l1_weight,
+            #l2_weight=l2_weight
         )
 
         # early stopping
@@ -167,11 +189,11 @@ def train_model(
         model,
         test_loader,
         device,
-        criterion,
+        #criterion,
         test=True,
-        reduction_loss=reduction_loss,
-        l1_weight=l1_weight,
-        l2_weight=l2_weight
+        #reduction_loss=reduction_loss,
+        #l1_weight=l1_weight,
+        #l2_weight=l2_weight
     )
 
     if print_log:
@@ -323,12 +345,12 @@ def test_model(
                 total_loss += loss.item()
                 total_acc += acc.item()
 
-                if test:
-                    print(pred_, pred.item())
-                    pred_.append(pred.item())
-                    target_.append(targets.item())
+                #if test:
+                    #print(pred_, pred.item())
+                    #pred_.append(pred)
+                    #target_.append(targets)
 
         total_loss /= current_len_loader
         total_acc /= current_len_loader
 
-    return total_loss, total_acc, pred_
+    return total_loss, total_acc#, pred_
