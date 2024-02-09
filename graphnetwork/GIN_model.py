@@ -8,6 +8,7 @@ from torch.nn import (
     ReLU,
     Dropout,
     LeakyReLU,
+    Tanh,
 )
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 
@@ -44,6 +45,7 @@ class GIN(torch.nn.Module):
         self.aggregation_global = aggregation_global
         self.device = device
 
+        """
         print(
             f"model input \n"
             f"---------- \n"
@@ -57,11 +59,14 @@ class GIN(torch.nn.Module):
             f"output channels mlp output layer: {out_channels_global} \n"
             f"---------- \n"
         )
+         """
 
         if activation_function_mlp == "ReLU":
             self.activation_function_MLP = ReLU()
         elif activation_function_mlp == "LeakyReLU":
             self.activation_function_MLP = LeakyReLU()
+        elif activation_function_mlp == "tanh":
+            self.activation_function_MLP = Tanh()
         else:
             "selected activation function could not be used for the MLP, using ReLU instead"
             self.activation_function_mlp = ReLU()
@@ -138,6 +143,8 @@ class GIN(torch.nn.Module):
             activation_function_gin = torch.nn.functional.relu
         elif self.activation_function_GIN == "LeakyReLU":
             activation_function_gin = torch.nn.functional.leaky_relu
+        elif activation_function_mlp == "tanh":
+            self.activation_function_MLP = Tanh()
         else:
             "selected activation function could not be used for the forward GIN layer, using ReLU instead"
             activation_function_gin = torch.nn.functional.relu

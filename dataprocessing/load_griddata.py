@@ -30,7 +30,7 @@ def load_grid(
     directory = os.getcwd()
 
     # load data ----------
-    print("---> start dataset loading ", dataset_explore)
+    #print("---> start dataset loading ", dataset_explore)
     dataset = GridDataset(
         directory=directory,
         val_fold=val_fold,
@@ -75,7 +75,7 @@ def load_dataloader(dataset, batchsize=64, shuffle=True):
             f"Is undirected: {data.is_undirected()} \n"
         )
         """
-        print(data)
+        #print(data)
         break
 
     return train_loader, val_loader, test_loader
@@ -172,16 +172,16 @@ def load_torch_dataset(
         print("!false no string match")
     """
     pt_location = os.getcwd()+location_save
-    print(pt_location)
+    #print(pt_location)
     loaded_torch = torch.load(pt_location)
 
-    # """
+    """
     # print("-- amount of (sub)graphs")
     print("dataset explore: ", dataset_explore)
     print("train graphs: ", len(loaded_torch.train_graphs))
     print("validation graphs: ", len(loaded_torch.val_graphs))
     print("test graphs: ", len(loaded_torch.test_graphs))
-    # """
+    """
 
     return loaded_torch
 
@@ -213,9 +213,9 @@ def load_multiple_grid(
     undir=False,
 ):
     # print("---> loading multi data from torch file ")
-    print("Topology changes: ", topo)
-    print("Undirected: ", undir)
-    print("Normalised: ", norm)
+    #print("Topology changes: ", topo)
+    #print("Undirected: ", undir)
+    #print("Normalised: ", norm)
 
     if len(dataset_explore) > 1:
         dataset_1 = load_torch_dataset(

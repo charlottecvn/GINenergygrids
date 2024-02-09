@@ -83,7 +83,7 @@ def train_model(
 
         current_len_loader_train = 0
         
-        print(f"start epoch {epoch}")
+        #print(f"start epoch {epoch}")
 
         # train on batches
         #print(f"lenght loader {len(loader)}")
@@ -139,6 +139,7 @@ def train_model(
             l2_weight=l2_weight
         )
 
+        """
         total_val_auc = AUC_test(
             model,
             val_loader,
@@ -148,6 +149,7 @@ def train_model(
             #l1_weight=l1_weight,
             #l2_weight=l2_weight
         )
+        """
 
         # early stopping
         current_loss = total_val_loss
@@ -161,12 +163,12 @@ def train_model(
         last_loss = current_loss
 
         print(
-            f"epoch: {epoch} | "
+            f"epoch: {epoch}/{n_epochs}| "
             f"train loss: {total_train_loss/current_len_loader_train:.2f} | "
             f"val loss: {total_val_loss:.2f} | "
             f"train acc: {total_train_acc/current_len_loader_train:.2f} | "
             f"val acc: {total_val_acc:.2f} | "
-            f"val auc: {total_val_auc:.2f} "
+            #f"val auc: {total_val_auc:.2f} "
         )
 
         if logging == "None":
@@ -174,7 +176,7 @@ def train_model(
             logging_result["loss_train"].append(total_train_loss / len(loader))
             logging_result["loss_val"].append(total_val_loss)
             logging_result["acc_val"].append(total_val_acc)
-            logging_result["auc_val"].append(total_val_auc)
+            #logging_result["auc_val"].append(total_val_auc)
 
     test_loss, test_acc = test_model(
         model,
@@ -185,6 +187,7 @@ def train_model(
         l1_weight=l1_weight,
         l2_weight=l2_weight
     )
+    """
     test_auc = AUC_test(
         model,
         test_loader,
@@ -195,21 +198,22 @@ def train_model(
         #l1_weight=l1_weight,
         #l2_weight=l2_weight
     )
+    """
 
     if print_log:
         print(
             f"test loss: {test_loss:.2f} | "
             f"test acc: {test_acc:.2f}% | "
-            f"test auc: {test_auc:.2f}% | "
+            #f"test auc: {test_auc:.2f}% | "
             f"test loss (calibrated): {test_loss:.2f} | "
             f"test acc (calibrated): {test_acc:.2f}% | "
-            f"test auc (calibrated): {test_auc:.2f}% | "
+            #f"test auc (calibrated): {test_auc:.2f}% | "
         )
 
     if logging == "None":
         logging_result["loss_test"].append(test_loss)
         logging_result["acc_test"].append(test_acc)
-        logging_result["auc_test"].append(test_auc)
+        #logging_result["auc_test"].append(test_auc)
 
     if print_log:
         with open(f"../logs/results/logging_result_{name_log}.pkl", "wb") as file:
@@ -285,7 +289,12 @@ def AUC_test(
                     pred_member.append(pred.item())
                     target_member.append(targets.item())
 
-        total_auc /= current_len_loader
+        if current_len_loader==0:
+            total_auc = 0
+        elif total_auc==0:
+             total_auc = 0
+        else:
+            total_auc /= current_len_loader
 
         if test:
             total_auc = auc_func_bin(
@@ -350,7 +359,15 @@ def test_model(
                     #pred_.append(pred)
                     #target_.append(targets)
 
-        total_loss /= current_len_loader
-        total_acc /= current_len_loader
+        if current_len_loader==0:
+            total_loss = 0
+            total_acc = 0
+        elif total_acc==0:
+             total_acc = 0
+        elif total_loss==0:
+            total_loss = 0
+        else:
+            total_loss /= current_len_loader
+            total_acc /= current_len_loader
 
     return total_loss, total_acc#, pred_

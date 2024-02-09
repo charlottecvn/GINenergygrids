@@ -359,6 +359,8 @@ def main(k: int,
         #l1_weight=additional_config["l1_weight"],
         #l2_weight=additional_config["l2_weight"]
     )
+    
+    return total_loss, total_acc
 
 if __name__ == '__main__':
     main()
