@@ -44,6 +44,7 @@ def main(trials: int,
     
     def run_experiment(k, epochs, merged_dataset, data_order, txt_name, batch_size, hidden_mlp, aggregation_nodes_edges, aggregation_global, activation_function_mlp, activation_function_gin, num_layers, dropout, lr, temp_init):
         # Change directory if needed
+        torch.cuda.empty_cache()
         os.chdir('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
         
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
