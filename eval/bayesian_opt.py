@@ -36,21 +36,27 @@ from dataprocessing.load_griddata import load_dataloader, load_multiple_grid
     default="optimization_trial",
     help="txt name for outputs",
 )
+@click.option(
+    "--txt_optuna",
+    type=str,
+    required=False,
+    default="test_optuna",
+    help="txt name for optuna dashboard",
+)
 
 def main(trials: int, 
         merged_dataset: bool, 
         data_order: (str,str,str,str), 
-        txt_name: str):
+        txt_name: str,
+        txt_optuna: str,
+        ):
     
     def run_experiment(k, epochs, merged_dataset, data_order, txt_name, batch_size, hidden_mlp, aggregation_nodes_edges, aggregation_global, activation_function_mlp, activation_function_gin, num_layers, dropout, lr, temp_init):
-        # Change directory if needed
         torch.cuda.empty_cache()
         os.chdir('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
         
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print("Using device:", device)
-        #print(torch.version.cuda)
-        #print("Is CUDA enabled?",torch.cuda.is_available())
         
         torch.manual_seed(2023)
 
@@ -80,8 +86,7 @@ def main(trials: int,
             samples_fold=2000
             if data_order[0]=="location3":
                 samples_fold = 200
-        
-        # Example base config, add or modify according to your needs
+
         base_config = {
             "normalise_data": False,
             "topo_changes": True,
@@ -95,7 +100,6 @@ def main(trials: int,
             "criterion": F.binary_cross_entropy
         }
 
-        # Example additional config, adjust as necessary
         additional_config = {
             "dataset_explore": data_order,
             "samples_fold": samples_fold,
@@ -132,7 +136,7 @@ def main(trials: int,
 
         _, _, test_loader = load_dataloader(
             dataset,
-            batchsize=1,  # additional_config["batch_size"],
+            batchsize=1, 
             shuffle=base_config["shuffle_data"],
         )
 
@@ -199,16 +203,16 @@ def main(trials: int,
 
     def objective(trial, n_trial, merged_dataset, data_order, txt_name):
         k = n_trial 
-        epochs = trial.suggest_int('epochs', 500, 4000)
-        lr = trial.suggest_loguniform('lr', 1e-5, 1e-3) #[1e-6, 1e-5, 1e-4] #1e-7
+        epochs = trial.suggest_int('epochs', 250, 4000)
+        lr = trial.suggest_loguniform('lr', 1e-5, 1e-3) 
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
         dropout = trial.suggest_uniform('dropout', 0.01, 0.5)
         temp_init = trial.suggest_uniform('temp_init', 0.8, 1.1)
         num_layers = trial.suggest_int('num_layers', 5, 25)
         aggregation_nodes_edges = trial.suggest_categorical('aggregation_nodes_edges', ['max', 'mean', 'sum'])
         aggregation_global = trial.suggest_categorical('aggregation_global', ['max', 'mean', 'sum'])
-        activation_function_mlp = trial.suggest_categorical('activation_function_mlp', ['LeakyReLU', 'ReLU'])#, 'tanh'])
-        activation_function_gin = trial.suggest_categorical('activation_function_gin', ['LeakyReLU', 'ReLU'])#, 'tanh'])
+        activation_function_mlp = trial.suggest_categorical('activation_function_mlp', ['LeakyReLU', 'ReLU', 'Tanh'])
+        activation_function_gin = trial.suggest_categorical('activation_function_gin', ['LeakyReLU', 'ReLU', 'Tanh'])
         hidden_mlp = trial.suggest_categorical('hidden_mlp' , [16, 32, 64, 128])
         
         hyperparams = {
@@ -218,30 +222,28 @@ def main(trials: int,
             'data_order': data_order,  # Example fixed value
             'txt_name': txt_name,
             'batch_size': batch_size,
-            'hidden_mlp': hidden_mlp,  # Example fixed value
-            'aggregation_nodes_edges': aggregation_nodes_edges,  # Example fixed value
-            'aggregation_global': aggregation_global,  # Example fixed value
-            'activation_function_mlp': activation_function_mlp,  # Example fixed value
-            'activation_function_gin': activation_function_gin,  # Example fixed value
-            'num_layers': num_layers,  # Example fixed value
+            'hidden_mlp': hidden_mlp,  
+            'aggregation_nodes_edges': aggregation_nodes_edges, 
+            'aggregation_global': aggregation_global, 
+            'activation_function_mlp': activation_function_mlp,  
+            'activation_function_gin': activation_function_gin,  
+            'num_layers': num_layers,  
             'dropout': dropout,
             'lr': lr,
-            'temp_init': temp_init,  # Example fixed value
+            'temp_init': temp_init,  
         }
 
-        # Run the experiment with the current set of hyperparameters
         loss, accuracy = run_experiment(**hyperparams)
         print(f"Trial finished with test loss {loss} and test accuracy {accuracy}")
-        
-        # Objective: minimize loss. You can also choose to maximize accuracy by returning a negative value of it.
         return accuracy
     
-    study = optuna.create_study(direction='maximize')
-    #study.optimize(objective, n_trials=trials)  # Adjust n_trials as per your requirement
+    study = optuna.create_study(direction='maximize', storage="sqlite:///db.sqlite3", study_name=txt_optuna)
     study.optimize(lambda trial: objective(trial, trials, merged_dataset, data_order, txt_name), n_trials=trials)
     
     print('Number of finished trials:', len(study.trials))
     print('Best trial:', study.best_trial.params)
+    print(study.best_trial.number)
+    print(study.best_value)
 
 if __name__ == '__main__':
     print("start hyperparam optimisation")

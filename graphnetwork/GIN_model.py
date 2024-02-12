@@ -41,25 +41,8 @@ class GIN(torch.nn.Module):
         self.gin_MLP_layers = torch.nn.ModuleList()
         self.edge_features = edge_features
         self.activation_function_input_mlp = ReLU()
-        self.activation_function_GIN = activation_function_gin
         self.aggregation_global = aggregation_global
         self.device = device
-
-        """
-        print(
-            f"model input \n"
-            f"---------- \n"
-            f"input (x) channels gin block layer: {in_channels_gin_x} \n"
-            f"input (edge) channels gin block layer: {in_channels_gin_edge} \n"
-            f"hidden channels gin block layer: {hidden_channels_gin} \n"
-            f"output channels gin block layer: {out_channels_gin} \n"
-            f"---------- \n"
-            f"input channels mlp output layer: {hidden_channels_global} \n"
-            f"hidden channels mlp output layer: {hidden_channels_global} \n"
-            f"output channels mlp output layer: {out_channels_global} \n"
-            f"---------- \n"
-        )
-         """
 
         if activation_function_mlp == "ReLU":
             self.activation_function_MLP = ReLU()
@@ -69,7 +52,17 @@ class GIN(torch.nn.Module):
             self.activation_function_MLP = Tanh()
         else:
             "selected activation function could not be used for the MLP, using ReLU instead"
-            self.activation_function_mlp = ReLU()
+            self.activation_function_MLP = ReLU()
+            
+        if activation_function_gin == "ReLU":
+            self.activation_function_GIN = torch.nn.functional.relu
+        elif activation_function_gin == "LeakyReLU":
+            self.activation_function_GIN = torch.nn.functional.leaky_relu
+        elif activation_function_gin == "tanh":
+            self.activation_function_GIN = torch.nn.functional.tanh
+        else:
+            "selected activation function could not be used for the forward GIN layer, using ReLU instead"
+            self.activation_function_GIN = torch.nn.functional.relu
 
         self.mlp_out = Sequential(
             Linear(hidden_channels_global, hidden_channels_global),
@@ -139,31 +132,19 @@ class GIN(torch.nn.Module):
             "selected aggregation function could not be used for the global aggregation, will use add aggregation instead"
             aggregation = global_add_pool
 
-        if self.activation_function_GIN == "ReLU":
-            activation_function_gin = torch.nn.functional.relu
-        elif self.activation_function_GIN == "LeakyReLU":
-            activation_function_gin = torch.nn.functional.leaky_relu
-        elif activation_function_mlp == "tanh":
-            self.activation_function_MLP = Tanh()
-        else:
-            "selected activation function could not be used for the forward GIN layer, using ReLU instead"
-            activation_function_gin = torch.nn.functional.relu
-
         out_blocks = []
         start_block = 0
 
-        # Input embeddings
-        x = x.to(self.device)
         edge_index = edge_index.to(self.device)
-        edge_attr = edge_attr.to(self.device)
         
-        edge_attr = self.gin_MLP_layers[start_block](edge_attr)
-        
+        # embeddings (nodes)
+        x = x.to(self.device)
         MLPembd_ = MLPembd(self.in_channels_gin_x, self.hidden_channels_gin, self.activation_function_input_mlp).to(self.device)
         x = MLPembd_(x, edge_index)
-        #(self.in_channels_gin_x, self.hidden_channels_gin, self.activation_function_input_mlp)(x, edge_index)
-
-        #x = node_embd(x)
+        
+        # embeddings (edges)
+        edge_attr = edge_attr.to(self.device)
+        edge_attr = self.gin_MLP_layers[start_block](edge_attr)
         
         # GIN layers
         for blocks_i in range(self.num_layers):
@@ -173,7 +154,7 @@ class GIN(torch.nn.Module):
             else:
                 raise NotImplementedError
 
-        # Global
+        # merge layers 
         h = aggregation(out_blocks[0], batch)
         for i in range(self.num_layers - 1):
             h_i = aggregation(out_blocks[i + 1], batch)

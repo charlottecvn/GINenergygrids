@@ -148,7 +148,6 @@ class GINE_layer(MessagePassing):
             if self.linear_learning == True:
                 self.lin = Linear(edge_dim, in_channels)
             else:
-                # print("non linear layer is used for the edge embeddings (*ReLU)")
                 self.lin = LeakyReLU()  # ReLU, PReLU
 
         else:
@@ -212,5 +211,5 @@ class MLPembd(MessagePassing):
     def forward(self, x, edge_index):
         return self.propagate(edge_index=edge_index, x=x)
 
-    def message(self, x_i):  # Changed from input_ to x_i
+    def message(self, x_i): 
         return self.mlp(x_i)
