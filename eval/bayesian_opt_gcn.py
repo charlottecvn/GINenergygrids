@@ -6,8 +6,8 @@ from pathlib import Path
 import optuna
 import sys 
 sys.path.append('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
-from graphnetwork.GIN_model import GIN
-from experiments.training import train_model, test_model, AUC_test
+from graphnetwork.GCN_model import GCN
+from experiments.training import train_model, test_model
 from dataprocessing.load_griddata import load_dataloader, load_multiple_grid
 
 @click.command()
@@ -51,7 +51,7 @@ def main(trials: int,
         txt_optuna: str,
         ):
     
-    def run_experiment(k, epochs, merged_dataset, data_order, txt_name, batch_size, hidden_mlp, aggregation_nodes_edges, aggregation_global, activation_function_mlp, activation_function_gin, num_layers, dropout, lr, temp_init):
+    def run_experiment(k, epochs, merged_dataset, data_order, txt_name, batch_size, hidden_mlp, aggregation_nodes_edges, aggregation_global, activation_function_mlp, activation_function_gcn, num_layers, dropout, lr, temp_init):
         torch.cuda.empty_cache()
         os.chdir('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
         
@@ -93,7 +93,6 @@ def main(trials: int,
             "undirected": True,
             "shuffle_data": True,
             "val_fold": 0,
-            "edge_features": True,
             "linear_learn": False,
             "hidden_mlp": hidden_mlp,
             "out_global": 1,
@@ -105,8 +104,7 @@ def main(trials: int,
             "samples_fold": samples_fold,
             "batch_size": batch_size,
             "activation_function_mlp": activation_function_mlp,
-            "activation_function_gin": activation_function_gin,
-            "aggregation_nodes_edges": aggregation_nodes_edges,
+            "activation_function_gcn": activation_function_gcn,
             "aggregation_global": aggregation_global,
             "epochs": epochs,
             "num_layers": num_layers,
@@ -151,26 +149,21 @@ def main(trials: int,
             n_node_feat = data.num_node_features
             break
         
-        model_gin_edges = GIN(
-            in_channels_gin_x=n_node_feat,
-            in_channels_gin_edge=n_edge_feat,
-            hidden_channels_gin=base_config["hidden_mlp"],
-            out_channels_gin=base_config["hidden_mlp"],
+        model_gcn_edges = GCN(
+            in_channels_gcn_x=n_node_feat,
+            hidden_channels_gcn=base_config["hidden_mlp"],
             hidden_channels_global=additional_config["hidden_global"],
             out_channels_global=base_config["out_global"],
             num_layers=additional_config["num_layers"],
-            edge_features=base_config["edge_features"],
             dropout=additional_config["dropout"],
-            linear_learn=base_config["linear_learn"],
             activation_function_mlp=additional_config["activation_function_mlp"],
-            activation_function_gin=additional_config["activation_function_gin"],
-            aggregation_nodes_edges=additional_config["aggregation_nodes_edges"],
+            activation_function_gcn=additional_config["activation_function_gcn"],
             aggregation_global=additional_config["aggregation_global"],
             device=device, 
         ).to(device)
         
         train_model(
-            model_gin_edges,
+            model_gcn_edges,
             train_loader,  
             val_loader,
             test_loader,
@@ -189,7 +182,7 @@ def main(trials: int,
         )
 
         total_loss, total_acc = test_model(
-            model_gin_edges,
+            model_gcn_edges,
             test_loader,
             device,
             criterion=base_config["criterion"],
@@ -209,10 +202,9 @@ def main(trials: int,
         dropout = trial.suggest_uniform('dropout', 0.01, 0.5)
         temp_init = trial.suggest_uniform('temp_init', 0.8, 1.1)
         num_layers = trial.suggest_int('num_layers', 5, 25)
-        aggregation_nodes_edges = trial.suggest_categorical('aggregation_nodes_edges', ['max', 'mean', 'sum'])
         aggregation_global = trial.suggest_categorical('aggregation_global', ['max', 'mean', 'sum'])
         activation_function_mlp = trial.suggest_categorical('activation_function_mlp', ['LeakyReLU', 'ReLU', 'Tanh'])
-        activation_function_gin = trial.suggest_categorical('activation_function_gin', ['LeakyReLU', 'ReLU', 'Tanh'])
+        activation_function_gcn = trial.suggest_categorical('activation_function_gcn', ['LeakyReLU', 'ReLU', 'Tanh'])
         hidden_mlp = trial.suggest_categorical('hidden_mlp' , [16, 32, 64, 128])
         
         hyperparams = {
@@ -223,10 +215,9 @@ def main(trials: int,
             'txt_name': txt_name,
             'batch_size': batch_size,
             'hidden_mlp': hidden_mlp,  
-            'aggregation_nodes_edges': aggregation_nodes_edges, 
             'aggregation_global': aggregation_global, 
             'activation_function_mlp': activation_function_mlp,  
-            'activation_function_gin': activation_function_gin,  
+            'activation_function_gcn': activation_function_gcn,  
             'num_layers': num_layers,  
             'dropout': dropout,
             'lr': lr,
