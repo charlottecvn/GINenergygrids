@@ -12,7 +12,7 @@ from torch.nn import (
 )
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 
-from graphnetwork.GCN_layers import GCN_layer, MLPembd
+from graphnetwork.GCN_layers import GCNConv, MLPembd
 
 class GCN(torch.nn.Module):
     def __init__(
@@ -80,7 +80,7 @@ class GCN(torch.nn.Module):
         # CORE GCN BLOCK
         for i in range(num_layers):
             self.gcn_MLP_layers.append(
-                GCN_layer(
+                GCNConv(
                     [hidden_channels_gcn, hidden_channels_gcn, hidden_channels_gcn],
                 ).to(self.device)
             )

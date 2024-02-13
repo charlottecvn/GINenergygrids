@@ -5,7 +5,7 @@ from typing import Optional, List
 import torch
 from torch import Tensor
 from torch.nn import Parameter
-
+from torch.nn import Sequential
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.nn.dense.linear import Linear
 from torch_geometric.nn.inits import zeros
@@ -216,3 +216,20 @@ class GCNConv(MessagePassing):
 
     def message_and_aggregate(self, adj_t: Adj, x: Tensor) -> Tensor:
         return spmm(adj_t, x, reduce=self.aggr)
+    
+class MLPembd(MessagePassing):
+    def __init__(self, in_channels, hidden_channels, activation):
+        super(MLPembd, self).__init__(aggr='sum')
+        self.mlp = Sequential(
+                        Linear(in_channels, hidden_channels),
+                        activation,
+                        Linear(hidden_channels, hidden_channels),
+                        activation,
+                        Linear(hidden_channels, hidden_channels),
+                    )#.to(device)
+
+    def forward(self, x, edge_index):
+        return self.propagate(edge_index=edge_index, x=x)
+
+    def message(self, x_i): 
+        return self.mlp(x_i)
