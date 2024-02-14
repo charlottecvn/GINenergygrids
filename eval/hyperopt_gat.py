@@ -261,11 +261,6 @@ def main(
         lambda trial: objective(trial, trials, merged_dataset, data_order, txt_name),
         n_trials=trials,
     )
-
-    optuna.plot_intermediate_values(study)
-    optuna.plot_parallel_coordinate(study)
-    optuna.plot_contour(study)
-
     print("Number of finished trials:", len(study.trials))
     print("Best trial:", study.best_trial.params)
     print(study.best_trial.number)

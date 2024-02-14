@@ -12,7 +12,7 @@ from torch.nn import (
 )
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 
-from graphnetwork.GAT_layers import GATConv, MLPembd
+from graphnetwork.GAT_layers import GATv2Conv, MLPembd #GATConv
 
 
 class GAT(torch.nn.Module):
@@ -24,7 +24,7 @@ class GAT(torch.nn.Module):
         hidden_channels_global=2,
         out_channels_global=1,
         num_layers=1,
-        edge_dim=8,
+        edge_dim=16,
         dropout=0.15,
         activation_function_gat="LeakyReLU",
         activation_function_mlp="LeakyReLU",
@@ -69,6 +69,7 @@ class GAT(torch.nn.Module):
         )
 
         self.in_channels_gat_x = in_channels_gat_x
+        self.in_channels_gat_edge = in_channels_gat_edge
         self.hidden_channels_gat = hidden_channels_gat
         
         # INPUT GAT BLOCK (edges)
@@ -94,7 +95,7 @@ class GAT(torch.nn.Module):
         # CORE GAT BLOCK
         for i in range(num_layers):
             self.gat_MLP_layers.append(
-                GATConv(
+                GATv2Conv(
                     in_channels=hidden_channels_gat, 
                     out_channels=hidden_channels_gat,
                     edge_dim=edge_dim
@@ -142,7 +143,7 @@ class GAT(torch.nn.Module):
 
         # GAT layers
         for blocks_i in range(self.num_layers):
-            x = self.gat_MLP_layers[(blocks_i)](x, edge_index, edge_attr)
+            x = self.gat_MLP_layers[(blocks_i)+1](x, edge_index, edge_attr)
             out_blocks.append(x)
 
         # merge layers
