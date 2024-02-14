@@ -31,7 +31,7 @@ for dataset_explore in datasets:
     else:
         samples_fold = 10  # 2000
 
-    #print(f"samples per fold: {samples_fold} \n")
+    # print(f"samples per fold: {samples_fold} \n")
 
     # load data (griddata) ----------
     dataset = load_grid(
@@ -50,12 +50,12 @@ for dataset_explore in datasets:
     # )
 
     # """
-    #print("---> create data with data loader ")
+    # print("---> create data with data loader ")
     train_loader = DataLoader(dataset.train_graphs, batch_size=1, shuffle=True)
     val_loader = DataLoader(dataset.val_graphs, batch_size=1, shuffle=True)
     test_loader = DataLoader(dataset.test_graphs, batch_size=1, shuffle=True)
 
-    #print("---> data in the train_loader ")
+    # print("---> data in the train_loader ")
     for data in train_loader:
         """
         print(

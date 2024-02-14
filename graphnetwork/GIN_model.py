@@ -14,6 +14,7 @@ from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_poo
 
 from graphnetwork.GIN_layers import GINE_layer, MLPembd
 
+
 class GIN(torch.nn.Module):
     def __init__(
         self,
@@ -34,7 +35,6 @@ class GIN(torch.nn.Module):
         aggregation_global="max",
         device="cuda:o",
     ):
-
         super().__init__()
 
         self.num_layers = num_layers
@@ -43,6 +43,7 @@ class GIN(torch.nn.Module):
         self.activation_function_input_mlp = ReLU()
         self.aggregation_global = aggregation_global
         self.device = device
+        self.model_name = "GIN"
 
         if activation_function_mlp == "ReLU":
             self.activation_function_MLP = ReLU()
@@ -53,7 +54,7 @@ class GIN(torch.nn.Module):
         else:
             "selected activation function could not be used for the MLP, using ReLU instead"
             self.activation_function_MLP = ReLU()
-            
+
         if activation_function_gin == "ReLU":
             self.activation_function_GIN = torch.nn.functional.relu
         elif activation_function_gin == "LeakyReLU":
@@ -94,7 +95,6 @@ class GIN(torch.nn.Module):
             self.activation_function_input_mlp,
             Linear(self.hidden_channels_gin, self.hidden_channels_gin),
         ).to(self.device)
-        
 
         # CORE GIN BLOCK
         for i in range(num_layers):
@@ -120,7 +120,6 @@ class GIN(torch.nn.Module):
             ).to(self.device)
         )
 
-
     def forward(self, x, edge_index, batch, edge_attr):
         if self.aggregation_global == "add":
             aggregation = global_add_pool
@@ -133,28 +132,31 @@ class GIN(torch.nn.Module):
             aggregation = global_add_pool
 
         out_blocks = []
-        start_block = 0
 
         edge_index = edge_index.to(self.device)
-        
+
         # embeddings (nodes)
         x = x.to(self.device)
-        MLPembd_ = MLPembd(self.in_channels_gin_x, self.hidden_channels_gin, self.activation_function_input_mlp).to(self.device)
+        MLPembd_ = MLPembd(
+            self.in_channels_gin_x,
+            self.hidden_channels_gin,
+            self.activation_function_input_mlp,
+        ).to(self.device)
         x = MLPembd_(x, edge_index)
-        
+
         # embeddings (edges)
         edge_attr = edge_attr.to(self.device)
-        edge_attr = self.gin_MLP_layers[start_block](edge_attr)
-        
+        edge_attr = self.gin_MLP_layers[0](edge_attr)
+
         # GIN layers
         for blocks_i in range(self.num_layers):
             if self.edge_features:
-                x = self.gin_MLP_layers[(blocks_i)+1](x, edge_index, edge_attr)
+                x = self.gin_MLP_layers[(blocks_i) + 1](x, edge_index, edge_attr)
                 out_blocks.append(x)
             else:
                 raise NotImplementedError
 
-        # merge layers 
+        # merge layers
         h = aggregation(out_blocks[0], batch)
         for i in range(self.num_layers - 1):
             h_i = aggregation(out_blocks[i + 1], batch)

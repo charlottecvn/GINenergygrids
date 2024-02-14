@@ -7,8 +7,8 @@ import optuna
 import sys
 
 sys.path.append("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
-from graphnetwork.GIN_model import GIN
-from experiments.training import train_model, test_model, AUC_test
+from graphnetwork.GAT_model import GAT
+from experiments.training import train_model, test_model
 from dataprocessing.load_griddata import load_dataloader, load_multiple_grid
 
 
@@ -60,10 +60,9 @@ def main(
         txt_name,
         batch_size,
         hidden_mlp,
-        aggregation_nodes_edges,
         aggregation_global,
         activation_function_mlp,
-        activation_function_gin,
+        activation_function_gat,
         num_layers,
         dropout,
         lr,
@@ -110,7 +109,6 @@ def main(
             "undirected": True,
             "shuffle_data": True,
             "val_fold": 0,
-            "edge_features": True,
             "linear_learn": False,
             "hidden_mlp": hidden_mlp,
             "out_global": 1,
@@ -122,8 +120,7 @@ def main(
             "samples_fold": samples_fold,
             "batch_size": batch_size,
             "activation_function_mlp": activation_function_mlp,
-            "activation_function_gin": activation_function_gin,
-            "aggregation_nodes_edges": aggregation_nodes_edges,
+            "activation_function_gat": activation_function_gat,
             "aggregation_global": aggregation_global,
             "epochs": epochs,
             "num_layers": num_layers,
@@ -167,30 +164,24 @@ def main(
         )
 
         for data in train_loader:
-            n_edge_feat = data.num_edge_features
             n_node_feat = data.num_node_features
             break
 
-        model_gin_edges = GIN(
-            in_channels_gin_x=n_node_feat,
-            in_channels_gin_edge=n_edge_feat,
-            hidden_channels_gin=base_config["hidden_mlp"],
-            out_channels_gin=base_config["hidden_mlp"],
+        model_gat = GAT(
+            in_channels_gat_x=n_node_feat,
+            hidden_channels_gat=base_config["hidden_mlp"],
             hidden_channels_global=additional_config["hidden_global"],
             out_channels_global=base_config["out_global"],
             num_layers=additional_config["num_layers"],
-            edge_features=base_config["edge_features"],
             dropout=additional_config["dropout"],
-            linear_learn=base_config["linear_learn"],
             activation_function_mlp=additional_config["activation_function_mlp"],
-            activation_function_gin=additional_config["activation_function_gin"],
-            aggregation_nodes_edges=additional_config["aggregation_nodes_edges"],
+            activation_function_gat=additional_config["activation_function_gat"],
             aggregation_global=additional_config["aggregation_global"],
             device=device,
         ).to(device)
 
         train_model(
-            model_gin_edges,
+            model_gat,
             train_loader,
             val_loader,
             test_loader,
@@ -209,7 +200,7 @@ def main(
         )
 
         total_loss, total_acc = test_model(
-            model_gin_edges,
+            model_gat,
             test_loader,
             device,
             criterion=base_config["criterion"],
@@ -229,32 +220,28 @@ def main(
         dropout = trial.suggest_uniform("dropout", 0.01, 0.5)
         temp_init = trial.suggest_uniform("temp_init", 0.8, 1.1)
         num_layers = trial.suggest_int("num_layers", 5, 25)
-        aggregation_nodes_edges = trial.suggest_categorical(
-            "aggregation_nodes_edges", ["max", "mean", "sum"]
-        )
         aggregation_global = trial.suggest_categorical(
             "aggregation_global", ["max", "mean", "sum"]
         )
         activation_function_mlp = trial.suggest_categorical(
             "activation_function_mlp", ["LeakyReLU", "ReLU", "Tanh"]
         )
-        activation_function_gin = trial.suggest_categorical(
-            "activation_function_gin", ["LeakyReLU", "ReLU", "Tanh"]
+        activation_function_gat = trial.suggest_categorical(
+            "activation_function_gat", ["LeakyReLU", "ReLU", "Tanh"]
         )
         hidden_mlp = trial.suggest_categorical("hidden_mlp", [16, 32, 64, 128])
 
         hyperparams = {
             "k": k,
             "epochs": epochs,
-            "merged_dataset": merged_dataset,  # Example fixed value
-            "data_order": data_order,  # Example fixed value
+            "merged_dataset": merged_dataset,
+            "data_order": data_order,
             "txt_name": txt_name,
             "batch_size": batch_size,
             "hidden_mlp": hidden_mlp,
-            "aggregation_nodes_edges": aggregation_nodes_edges,
             "aggregation_global": aggregation_global,
             "activation_function_mlp": activation_function_mlp,
-            "activation_function_gin": activation_function_gin,
+            "activation_function_gat": activation_function_gat,
             "num_layers": num_layers,
             "dropout": dropout,
             "lr": lr,

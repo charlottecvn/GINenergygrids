@@ -1,10 +1,9 @@
 import torch
 import torch.nn.functional as F
-from torchmetrics.classification import (
-    BinaryAccuracy,
-    BinaryAUROC)
+from torchmetrics.classification import BinaryAccuracy, BinaryAUROC
 import pickle
 import plotly.express as px
+
 
 def check_model_device(model):
     devices = {p.device for p in model.parameters()}
@@ -22,6 +21,7 @@ def l1_l2_loss(model, l1_weight=0.001, l2_weight=0.001):
     l2_loss = l2_weight * model.compute_l2_loss(torch.cat(parameters_model))
 
     return l1_loss + l2_loss
+
 
 def train_model(
     model,
@@ -43,7 +43,6 @@ def train_model(
     l2_weight=0.001,
     *args,
 ):
-
     print(f"---> training the GNN with edge features on {device}")
 
     acc_func_bin = BinaryAccuracy().to(device)
@@ -82,37 +81,40 @@ def train_model(
         total_train_acc = 0
 
         current_len_loader_train = 0
-        
-        #print(f"start epoch {epoch}")
+
+        # print(f"start epoch {epoch}")
 
         # train on batches
-        #print(f"lenght loader {len(loader)}")
+        # print(f"lenght loader {len(loader)}")
         for i, data in enumerate(loader):
             if (
                 data.edge_index[0].max() > len(data.batch) - 1
                 or data.edge_index[1].max() > len(data.batch) - 1
             ):
-                #print('passing')
+                # print('passing')
                 pass
             else:
-                #print(f'start training for data in loader on {device}')
+                # print(f'start training for data in loader on {device}')
                 current_len_loader_train += 1
                 data = data.to(device)
-                
-                #check_model_device(model)
-                
+
+                # check_model_device(model)
+
                 model = model.to(device)
                 data.x = data.x.to(device)
                 data.edge_index = data.edge_index.to(device)
                 data.batch = data.batch.to(device)
                 data.edge_attr = data.edge_attr.to(device)
-                
+
                 model.train()
                 optimizer.zero_grad()
-                
-                out_zero, out = model(
-                    data.x, data.edge_index, data.batch, data.edge_attr
-                )
+
+                if model.model_name == "GCN":
+                    out_zero, out = model(data.x, data.edge_index, data.batch)
+                else:
+                    out_zero, out = model(
+                        data.x, data.edge_index, data.batch, data.edge_attr
+                    )
 
                 pred = out
                 targets = data.y
@@ -136,7 +138,7 @@ def train_model(
             criterion,
             reduction_loss=reduction_loss,
             l1_weight=l1_weight,
-            l2_weight=l2_weight
+            l2_weight=l2_weight,
         )
 
         """
@@ -168,7 +170,7 @@ def train_model(
             f"val loss: {total_val_loss:.2f} | "
             f"train acc: {total_train_acc/current_len_loader_train:.2f} | "
             f"val acc: {total_val_acc:.2f} | "
-            #f"val auc: {total_val_auc:.2f} "
+            # f"val auc: {total_val_auc:.2f} "
         )
 
         if logging == "None":
@@ -176,7 +178,7 @@ def train_model(
             logging_result["loss_train"].append(total_train_loss / len(loader))
             logging_result["loss_val"].append(total_val_loss)
             logging_result["acc_val"].append(total_val_acc)
-            #logging_result["auc_val"].append(total_val_auc)
+            # logging_result["auc_val"].append(total_val_auc)
 
     test_loss, test_acc = test_model(
         model,
@@ -185,7 +187,7 @@ def train_model(
         criterion,
         reduction_loss=reduction_loss,
         l1_weight=l1_weight,
-        l2_weight=l2_weight
+        l2_weight=l2_weight,
     )
     """
     test_auc = AUC_test(
@@ -204,16 +206,16 @@ def train_model(
         print(
             f"test loss: {test_loss:.2f} | "
             f"test acc: {test_acc:.2f}% | "
-            #f"test auc: {test_auc:.2f}% | "
+            # f"test auc: {test_auc:.2f}% | "
             f"test loss (calibrated): {test_loss:.2f} | "
             f"test acc (calibrated): {test_acc:.2f}% | "
-            #f"test auc (calibrated): {test_auc:.2f}% | "
+            # f"test auc (calibrated): {test_auc:.2f}% | "
         )
 
     if logging == "None":
         logging_result["loss_test"].append(test_loss)
         logging_result["acc_test"].append(test_acc)
-        #logging_result["auc_test"].append(test_auc)
+        # logging_result["auc_test"].append(test_auc)
 
     if print_log:
         with open(f"../logs/results/logging_result_{name_log}.pkl", "wb") as file:
@@ -245,13 +247,9 @@ def train_model(
 
     return model
 
+
 @torch.no_grad()
-def AUC_test(
-    model,
-    loader,
-    device="cpu",
-    test=False
-):
+def AUC_test(model, loader, device="cpu", test=False):
     total_auc = 0
     total_auc_2 = 0
     auc_func_bin = BinaryAUROC(thresholds=None)
@@ -289,10 +287,10 @@ def AUC_test(
                     pred_member.append(pred.item())
                     target_member.append(targets.item())
 
-        if current_len_loader==0:
+        if current_len_loader == 0:
             total_auc = 0
-        elif total_auc==0:
-             total_auc = 0
+        elif total_auc == 0:
+            total_auc = 0
         else:
             total_auc /= current_len_loader
 
@@ -306,16 +304,16 @@ def AUC_test(
 
 @torch.no_grad()
 def test_model(
-        model,
-        loader,
-        device="cpu",
-        test=False,
-        criterion=F.binary_cross_entropy,
-        reduction_loss="mean",
-        l1_weight=0.001,
-        l2_weight=0.001,
-        *args
-    ):
+    model,
+    loader,
+    device="cpu",
+    test=False,
+    criterion=F.binary_cross_entropy,
+    reduction_loss="mean",
+    l1_weight=0.001,
+    l2_weight=0.001,
+    *args,
+):
     total_loss = 0
     total_acc = 0
 
@@ -338,9 +336,12 @@ def test_model(
             else:
                 current_len_loader += 1
                 data = data.to(device)
-                logits, out_sigmoid = model(
-                    data.x, data.edge_index, data.batch, data.edge_attr
-                )
+                if model.model_name == "GCN":
+                    logits, out_sigmoid = model(data.x, data.edge_index, data.batch)
+                else:
+                    logits, out_sigmoid = model(
+                        data.x, data.edge_index, data.batch, data.edge_attr
+                    )
 
                 targets = data.y
                 pred = out_sigmoid
@@ -354,20 +355,20 @@ def test_model(
                 total_loss += loss.item()
                 total_acc += acc.item()
 
-                #if test:
-                    #print(pred_, pred.item())
-                    #pred_.append(pred)
-                    #target_.append(targets)
+                # if test:
+                # print(pred_, pred.item())
+                # pred_.append(pred)
+                # target_.append(targets)
 
-        if current_len_loader==0:
+        if current_len_loader == 0:
             total_loss = 0
             total_acc = 0
-        elif total_acc==0:
-             total_acc = 0
-        elif total_loss==0:
+        elif total_acc == 0:
+            total_acc = 0
+        elif total_loss == 0:
             total_loss = 0
         else:
             total_loss /= current_len_loader
             total_acc /= current_len_loader
 
-    return total_loss, total_acc#, pred_
+    return total_loss, total_acc  # , pred_

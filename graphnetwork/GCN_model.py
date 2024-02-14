@@ -1,4 +1,4 @@
-# Building GCN 
+# Building GCN
 
 import torch
 from torch.nn import (
@@ -14,6 +14,7 @@ from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_poo
 
 from graphnetwork.GCN_layers import GCNConv, MLPembd
 
+
 class GCN(torch.nn.Module):
     def __init__(
         self,
@@ -28,7 +29,6 @@ class GCN(torch.nn.Module):
         aggregation_global="max",
         device="cuda:o",
     ):
-
         super().__init__()
 
         self.num_layers = num_layers
@@ -36,6 +36,7 @@ class GCN(torch.nn.Module):
         self.activation_function_input_mlp = ReLU()
         self.aggregation_global = aggregation_global
         self.device = device
+        self.model_name = "GCN"
 
         if activation_function_mlp == "ReLU":
             self.activation_function_MLP = ReLU()
@@ -46,7 +47,7 @@ class GCN(torch.nn.Module):
         else:
             "selected activation function could not be used for the MLP, using ReLU instead"
             self.activation_function_MLP = ReLU()
-            
+
         if activation_function_gcn == "ReLU":
             self.activation_function_GCN = torch.nn.functional.relu
         elif activation_function_gcn == "LeakyReLU":
@@ -76,12 +77,16 @@ class GCN(torch.nn.Module):
             self.activation_function_input_mlp,
             Linear(self.hidden_channels_gcn, self.hidden_channels_gcn),
         ).to(self.device)
-        
+
         # CORE GCN BLOCK
         for i in range(num_layers):
             self.gcn_MLP_layers.append(
                 GCNConv(
-                    [hidden_channels_gcn, hidden_channels_gcn, hidden_channels_gcn],
+                    input_size=[
+                        hidden_channels_gcn,
+                        hidden_channels_gcn,
+                        hidden_channels_gcn,
+                    ]
                 ).to(self.device)
             )
 
@@ -96,7 +101,6 @@ class GCN(torch.nn.Module):
             ).to(self.device)
         )
 
-
     def forward(self, x, edge_index, batch):
         if self.aggregation_global == "add":
             aggregation = global_add_pool
@@ -109,21 +113,24 @@ class GCN(torch.nn.Module):
             aggregation = global_add_pool
 
         out_blocks = []
-        start_block = 0
 
         edge_index = edge_index.to(self.device)
-        
+
         # embeddings (nodes)
         x = x.to(self.device)
-        MLPembd_ = MLPembd(self.in_channels_gcn_x, self.hidden_channels_gcn, self.activation_function_input_mlp).to(self.device)
+        MLPembd_ = MLPembd(
+            self.in_channels_gcn_x,
+            self.hidden_channels_gcn,
+            self.activation_function_input_mlp,
+        ).to(self.device)
         x = MLPembd_(x, edge_index)
-        
+
         # GCN layers
         for blocks_i in range(self.num_layers):
             x = self.gcn_MLP_layers[(blocks_i)](x, edge_index)
             out_blocks.append(x)
 
-        # merge layers 
+        # merge layers
         h = aggregation(out_blocks[0], batch)
         for i in range(self.num_layers - 1):
             h_i = aggregation(out_blocks[i + 1], batch)

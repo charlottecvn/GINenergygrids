@@ -3,12 +3,14 @@
 import torch
 from torchmetrics import MeanSquaredError
 
+
 def score_model(model, data, data_x, data_z):
     logits, out_sigmoid = model(data_x, data.edge_index, data.batch, data_z)
     pred = logits
     targets = data.y
     metric_score = MeanSquaredError()
     return metric_score(pred, targets)
+
 
 def PFI_model(test_loader, model):
     score_orig = 0
@@ -28,14 +30,17 @@ def PFI_model(test_loader, model):
 
     feat_importance = torch.empty(12, dtype=torch.float)
 
-    node_feat_names = ['power consumption', 'init_U_MSR', 'closed_U_MSR', 'degree']
+    node_feat_names = ["power consumption", "init_U_MSR", "closed_U_MSR", "degree"]
     num_node_feat = 4
     for i in range(0, num_node_feat):
         score_i = 0
         perm_d = 0
         count_pass = 0
         for d in test_loader:
-            if (d.edge_index[0].max() > len(d.batch) - 1 or d.edge_index[1].max() > len(d.batch) - 1):  # not test and
+            if (
+                d.edge_index[0].max() > len(d.batch) - 1
+                or d.edge_index[1].max() > len(d.batch) - 1
+            ):  # not test and
                 pass
                 count_pass += 1
             else:
@@ -55,7 +60,7 @@ def PFI_model(test_loader, model):
         # importance column i
         perm_imp_i = score_orig - score_i / perm_d  # len(test_loader)
         feat_importance[i] = perm_imp_i
-        print(f'importance node feat {node_feat_names[i]}({i}): {perm_imp_i}')
+        print(f"importance node feat {node_feat_names[i]}({i}): {perm_imp_i}")
 
     edge_feat_names = [
         "impedance",

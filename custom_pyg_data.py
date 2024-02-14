@@ -22,6 +22,7 @@ datasets = {
     "all": "all",
 }
 
+
 class GridDataset:
     """
     load a dataset of medium voltage grids
@@ -209,12 +210,18 @@ class GridDataset:
             if (
                 y_targets == 0.0 and different_topo
             ):  # removing edge/node pairs when different_topo=True
-                nodes_topo, railkey2index_topo, _ = self.get_nodes(path_i, remove_topo=True)
-                edges_topo, senders_topo, receivers_topo = self.get_edges(path_i, railkey2index_topo)
+                nodes_topo, railkey2index_topo, _ = self.get_nodes(
+                    path_i, remove_topo=True
+                )
+                edges_topo, senders_topo, receivers_topo = self.get_edges(
+                    path_i, railkey2index_topo
+                )
             elif (
                 y_targets == 1.0 and different_topo
             ):  # adding edge/node pairs when different_topo=True
-                nodes_topo, railkey2index_topo, edges_org_topo = self.get_nodes(path_i, add_topo=True)
+                nodes_topo, railkey2index_topo, edges_org_topo = self.get_nodes(
+                    path_i, add_topo=True
+                )
                 edges_topo, senders_topo, receivers_topo = self.get_edges_extra(
                     edges_org_topo, railkey2index_topo
                 )
@@ -234,12 +241,16 @@ class GridDataset:
 
             if different_topo:
                 x = torch.tensor(nodes_topo, dtype=torch.float)
-                edge_index = torch.tensor([senders_topo, receivers_topo], dtype=torch.long)
+                edge_index = torch.tensor(
+                    [senders_topo, receivers_topo], dtype=torch.long
+                )
                 edge_attr = torch.tensor(edges_topo, dtype=torch.float)
                 edge_index, edge_attr = torch_geometric.utils.to_undirected(
                     edge_index, edge_attr, reduce="mean"
                 )
-                graphs = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y_targets)
+                graphs = Data(
+                    x=x, edge_index=edge_index, edge_attr=edge_attr, y=y_targets
+                )
                 graphs_list.append(graphs)
 
         return graphs_list
@@ -341,7 +352,7 @@ class GridDataset:
                 targets.append(edges_i)
         return targets
 
-    def add_degree(self, path, node_df, max_ = 20):
+    def add_degree(self, path, node_df, max_=20):
         # ToDo: dislaimer, not the updated version for data augmentation
         """
         add the node degree as node feature to the node_df
@@ -376,15 +387,13 @@ class GridDataset:
         node_df.rename(columns={"edge": "incoming"}, inplace=True)
 
         # add incoming and outgoing edges to get degree
-        candidates_ = node_df.loc[node_df["outgoing"] <= 1] #0
+        candidates_ = node_df.loc[node_df["outgoing"] <= 1]  # 0
         node_df["degree"] = node_df["incoming"] + node_df["outgoing"]
         node_df.drop(columns=["incoming", "outgoing"], inplace=True)
 
         # remove or add edges (closed netopening)
         max_sample = len(candidates_)
-        sample_random = random.randint(
-            0, min(max_sample, max_)
-        )
+        sample_random = random.randint(0, min(max_sample, max_))
         candidate_nodes_edges = candidates_.sample(n=sample_random)
 
         return node_df, candidate_nodes_edges
@@ -405,7 +414,7 @@ class GridDataset:
             edge_features
         """
         raise NotImplementedError
-        #return [node_features, edge_features]
+        # return [node_features, edge_features]
 
     def get_nodes(self, path, remove_topo=False, add_topo=False):
         # ToDo: dislaimer, not the updated version for data augmentation
@@ -456,9 +465,9 @@ class GridDataset:
                     node_df_topo.loc[[cand_i]].assign(**{"RAIL": rail_i * 10}),
                     ignore_index=True,
                 )
-                #node_df = recompute_feat()
-                #for i in node_df_topo["incoming"].loc[[cand_i]]:
-                    #node_df_topo.loc[[cand_i]]=np.mean(node_df_topo["incoming"][:])
+                # node_df = recompute_feat()
+                # for i in node_df_topo["incoming"].loc[[cand_i]]:
+                # node_df_topo.loc[[cand_i]]=np.mean(node_df_topo["incoming"][:])
                 node_pairs.append([rail_i, rail_i * 10])
 
         if remove_topo or add_topo:

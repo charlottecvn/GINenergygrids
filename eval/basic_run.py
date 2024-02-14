@@ -4,7 +4,8 @@ import torch
 import torch.nn.functional as F
 import click
 from pathlib import Path
-sys.path.append('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
+
+sys.path.append("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
 
 from graphnetwork.GIN_model import GIN
 from experiments.training import train_model, test_model, AUC_test
@@ -12,6 +13,7 @@ from dataprocessing.load_griddata import (
     load_dataloader,
     load_multiple_grid,
 )
+
 
 @click.command()
 @click.option(
@@ -62,83 +64,85 @@ from dataprocessing.load_griddata import (
     "--aggregation_nodes_edges",
     type=str,
     required=False,
-    default='max',
+    default="max",
     help="aggregation nodes and edges",
 )
 @click.option(
     "--aggregation_global",
     type=str,
     required=False,
-    default='max',
+    default="max",
     help="aggregation global",
 )
 @click.option(
     "--activation_function_mlp",
     type=str,
     required=False,
-    default='LeakyReLU',
+    default="LeakyReLU",
     help="activation function mlp",
 )
 @click.option(
     "--activation_function_gin",
     type=str,
     required=False,
-    default='LeakyReLU',
+    default="LeakyReLU",
     help="activation function gin",
-) 
+)
 @click.option(
     "--num_layers",
     type=int,
     required=False,
     default=15,
     help="number of layers (related to k-hop neighbourhood)",
-) 
+)
 @click.option(
     "--dropout",
     type=float,
     required=False,
     default=0.15,
     help="dropout",
-) 
+)
 @click.option(
     "--lr",
     type=float,
     required=False,
     default=1e-6,
     help="learning rate",
-)   
+)
 @click.option(
     "--temp_init",
     type=float,
     required=False,
     default=0.9,
     help="temperature (calibration)",
-)  
-#"weightdecay": 0.01, "optimizer": "adam", "reduction_loss": "sum",  "l1_weight": 0.01, "l2_weight": 0.01,  "temperature_init": 0.9, 
+)
+# "weightdecay": 0.01, "optimizer": "adam", "reduction_loss": "sum",  "l1_weight": 0.01, "l2_weight": 0.01,  "temperature_init": 0.9,
 
-def main(k: int,   
-        epochs: int,   
-        merged_dataset: bool,   
-        data_order: (str,str,str,str),   
-        txt_name: str,
-        batch_size: int,    
-        hidden_mlp: int,     
-        aggregation_nodes_edges: str,     
-        aggregation_global: str,     
-        activation_function_mlp: str,     
-        activation_function_gin: str,      
-        num_layers: int,       
-        dropout: float,       
-        lr: float,       
-        temp_init: float 
-        ):
-    os.chdir('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
+
+def main(
+    k: int,
+    epochs: int,
+    merged_dataset: bool,
+    data_order: (str, str, str, str),
+    txt_name: str,
+    batch_size: int,
+    hidden_mlp: int,
+    aggregation_nodes_edges: str,
+    aggregation_global: str,
+    activation_function_mlp: str,
+    activation_function_gin: str,
+    num_layers: int,
+    dropout: float,
+    lr: float,
+    temp_init: float,
+):
+    os.chdir("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
     print(os.getcwd())
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
     print(torch.version.cuda)
-    print("Is CUDA enabled?",torch.cuda.is_available())
+    print("Is CUDA enabled?", torch.cuda.is_available())
 
     n_epochs = epochs
 
@@ -153,29 +157,29 @@ def main(k: int,
     logging = "None"
     txt_name = str(txt_name)
     print(txt_name)
-    
+
     if merged_dataset:
         print(data_order)
     else:
         print(data_order[0])
-    
+
     # set parameters ----------
     if merged_dataset:
-        samples_fold = [2000, 2000, 2000, 2000] 
+        samples_fold = [2000, 2000, 2000, 2000]
         for i in range(len(data_order)):
-            if data_order[i]=="location3":
-                samples_fold[i]=200# last one [-1] is the test data
-        
+            if data_order[i] == "location3":
+                samples_fold[i] = 200  # last one [-1] is the test data
+
         print(
             f"Merging datasets [{data_order[0], data_order[1], data_order[2]}] for training "
             f"and using [{data_order[3]}] for testing"
         )
     else:
         print("Using a single dataset")
-        data_order = [data_order[0]] 
-        samples_fold=2000
-        if data_order[0]=="location3":
-             samples_fold = 200
+        data_order = [data_order[0]]
+        samples_fold = 2000
+        if data_order[0] == "location3":
+            samples_fold = 200
 
     base_config = {
         "normalise_data": normalise_features,
@@ -187,7 +191,7 @@ def main(k: int,
         "linear_learn": False,
         "hidden_mlp": hidden_mlp,
         "out_global": 1,
-        "criterion": F.binary_cross_entropy
+        "criterion": F.binary_cross_entropy,
     }
 
     additional_config = {
@@ -211,7 +215,10 @@ def main(k: int,
     }
 
     additional_config.update(
-        {"hidden_global": base_config["hidden_mlp"] * (additional_config.get("num_layers"))}
+        {
+            "hidden_global": base_config["hidden_mlp"]
+            * (additional_config.get("num_layers"))
+        }
     )
 
     print(
@@ -243,14 +250,13 @@ def main(k: int,
         f"l2 weight: {additional_config['l2_weight']} \n"
     )
 
-
     # load data (grid and dataloader) ----------
     dataset = load_multiple_grid(
         additional_config["dataset_explore"],
         additional_config["samples_fold"],
         topo=base_config["topo_changes"],
         undir=base_config["undirected"],
-        norm=base_config["normalise_data"]
+        norm=base_config["normalise_data"],
     )
 
     _, _, test_loader = load_dataloader(
@@ -276,7 +282,6 @@ def main(k: int,
         n_node_feat = data.num_node_features
         break
 
-
     model_gin_edges = GIN(
         in_channels_gin_x=n_node_feat,
         in_channels_gin_edge=n_edge_feat,
@@ -292,7 +297,7 @@ def main(k: int,
         activation_function_gin=additional_config["activation_function_gin"],
         aggregation_nodes_edges=additional_config["aggregation_nodes_edges"],
         aggregation_global=additional_config["aggregation_global"],
-        device=device, 
+        device=device,
     ).to(device)
 
     print(
@@ -300,12 +305,14 @@ def main(k: int,
         sum([param.nelement() for param in model_gin_edges.parameters()]),
     )
 
-    torch.save(model_gin_edges.state_dict(), f"../logs/models/model_gin_torch_{txt_name}.pth")
+    torch.save(
+        model_gin_edges.state_dict(), f"../logs/models/model_gin_torch_{txt_name}.pth"
+    )
 
     # train gnn ----------
     train_model(
         model_gin_edges,
-        train_loader,  
+        train_loader,
         val_loader,
         test_loader,
         device,
@@ -319,10 +326,12 @@ def main(k: int,
         name_log=txt_name,
         reduction_loss=additional_config["reduction_loss"],
         l1_weight=additional_config["l1_weight"],
-        l2_weight=additional_config["l2_weight"]
+        l2_weight=additional_config["l2_weight"],
     )
 
-    torch.save(model_gin_edges.state_dict(), f"../logs/models/model_gin_torch_{txt_name}.pth")
+    torch.save(
+        model_gin_edges.state_dict(), f"../logs/models/model_gin_torch_{txt_name}.pth"
+    )
 
     """
     total_loss, total_acc, pred_ = test_model(
@@ -346,21 +355,22 @@ def main(k: int,
         test=True,
         reduction_loss=additional_config["reduction_loss"],
         l1_weight=additional_config["l1_weight"],
-        l2_weight=additional_config["l2_weight"]
+        l2_weight=additional_config["l2_weight"],
     )
 
     AUC_test(
         model_gin_edges,
         test_loader,
         device,
-        #criterion=base_config["criterion"],
+        # criterion=base_config["criterion"],
         test=True,
-        #reduction_loss=additional_config["reduction_loss"],
-        #l1_weight=additional_config["l1_weight"],
-        #l2_weight=additional_config["l2_weight"]
+        # reduction_loss=additional_config["reduction_loss"],
+        # l1_weight=additional_config["l1_weight"],
+        # l2_weight=additional_config["l2_weight"]
     )
-    
+
     return total_loss, total_acc
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

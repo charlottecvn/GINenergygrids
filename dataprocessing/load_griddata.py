@@ -30,7 +30,7 @@ def load_grid(
     directory = os.getcwd()
 
     # load data ----------
-    #print("---> start dataset loading ", dataset_explore)
+    # print("---> start dataset loading ", dataset_explore)
     dataset = GridDataset(
         directory=directory,
         val_fold=val_fold,
@@ -75,7 +75,7 @@ def load_dataloader(dataset, batchsize=64, shuffle=True):
             f"Is undirected: {data.is_undirected()} \n"
         )
         """
-        #print(data)
+        # print(data)
         break
 
     return train_loader, val_loader, test_loader
@@ -101,27 +101,25 @@ def save_torch_dataset(
     if topo and undir and norm:
         location_save = f"../inputdata/data_pt/grid_data_{dataset_explore}_topo_undirected_norm_{samples_fold}.pt"
     elif topo and undir:
-        location_save = (
-            f"../inputdata/data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
-        )
+        location_save = f"../inputdata/data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
     elif topo and norm:
-        location_save = (
-            f"../inputdata/data_pt/grid_data_{dataset_explore}_topo_norm_{samples_fold}.pt"
-        )
+        location_save = f"../inputdata/data_pt/grid_data_{dataset_explore}_topo_norm_{samples_fold}.pt"
     elif norm and undir:
-        location_save = (
-            f"../inputdata/data_pt/grid_data_{dataset_explore}_undirected_norm_{samples_fold}.pt"
-        )
+        location_save = f"../inputdata/data_pt/grid_data_{dataset_explore}_undirected_norm_{samples_fold}.pt"
     elif topo:
-        location_save = f"../inputdata/data_pt/grid_data_{dataset_explore}_topo_{samples_fold}.pt"
-    elif undir:
         location_save = (
-            f"../inputdata/data_pt/grid_data_{dataset_explore}_undirected_{samples_fold}.pt"
+            f"../inputdata/data_pt/grid_data_{dataset_explore}_topo_{samples_fold}.pt"
         )
+    elif undir:
+        location_save = f"../inputdata/data_pt/grid_data_{dataset_explore}_undirected_{samples_fold}.pt"
     elif norm:
-        location_save = f"../inputdata/data_pt/grid_data_{dataset_explore}_norm_{samples_fold}.pt"
+        location_save = (
+            f"../inputdata/data_pt/grid_data_{dataset_explore}_norm_{samples_fold}.pt"
+        )
     else:
-        location_save = f"../inputdata/data_pt/grid_data_{dataset_explore}_{samples_fold}.pt"
+        location_save = (
+            f"../inputdata/data_pt/grid_data_{dataset_explore}_{samples_fold}.pt"
+        )
 
     torch.save(dataset, location_save)
 
@@ -141,27 +139,27 @@ def load_torch_dataset(
     if topo and undir and norm:
         location_save = f"inputdata/data_pt/grid_data_{dataset_explore}_topo_undirected_norm_{samples_fold}.pt"
     elif topo and undir:
-        location_save = (
-            f"/inputdata/data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
-        )
+        location_save = f"/inputdata/data_pt/grid_data_{dataset_explore}_topo_undirected_{samples_fold}.pt"
     elif topo and norm:
         location_save = (
             f"inputdata/data_pt/grid_data_{dataset_explore}_topo_norm_{samples_fold}.pt"
         )
     elif norm and undir:
-        location_save = (
-            f"inputdata/data_pt/grid_data_{dataset_explore}_undirected_norm_{samples_fold}.pt"
-        )
+        location_save = f"inputdata/data_pt/grid_data_{dataset_explore}_undirected_norm_{samples_fold}.pt"
     elif topo:
-        location_save = f"inputdata/data_pt/grid_data_{dataset_explore}_topo_{samples_fold}.pt"
-    elif undir:
         location_save = (
-            f"inputdata/data_pt/grid_data_{dataset_explore}_undirected_{samples_fold}.pt"
+            f"inputdata/data_pt/grid_data_{dataset_explore}_topo_{samples_fold}.pt"
         )
+    elif undir:
+        location_save = f"inputdata/data_pt/grid_data_{dataset_explore}_undirected_{samples_fold}.pt"
     elif norm:
-        location_save = f"inputdata/data_pt/grid_data_{dataset_explore}_norm_{samples_fold}.pt"
+        location_save = (
+            f"inputdata/data_pt/grid_data_{dataset_explore}_norm_{samples_fold}.pt"
+        )
     else:
-        location_save = f"inputdata/data_pt/grid_data_{dataset_explore}_{samples_fold}.pt"
+        location_save = (
+            f"inputdata/data_pt/grid_data_{dataset_explore}_{samples_fold}.pt"
+        )
 
     """
     print(location_save)
@@ -171,8 +169,8 @@ def load_torch_dataset(
     else:
         print("!false no string match")
     """
-    pt_location = os.getcwd()+location_save
-    #print(pt_location)
+    pt_location = os.getcwd() + location_save
+    # print(pt_location)
     loaded_torch = torch.load(pt_location)
 
     """
@@ -213,9 +211,9 @@ def load_multiple_grid(
     undir=False,
 ):
     # print("---> loading multi data from torch file ")
-    #print("Topology changes: ", topo)
-    #print("Undirected: ", undir)
-    #print("Normalised: ", norm)
+    # print("Topology changes: ", topo)
+    # print("Undirected: ", undir)
+    # print("Normalised: ", norm)
 
     if len(dataset_explore) > 1:
         dataset_1 = load_torch_dataset(

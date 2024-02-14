@@ -4,11 +4,13 @@ import torch.nn.functional as F
 import click
 from pathlib import Path
 import optuna
-import sys 
-sys.path.append('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
+import sys
+
+sys.path.append("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
 from graphnetwork.GCN_model import GCN
 from experiments.training import train_model, test_model
 from dataprocessing.load_griddata import load_dataloader, load_multiple_grid
+
 
 @click.command()
 @click.option(
@@ -43,48 +45,62 @@ from dataprocessing.load_griddata import load_dataloader, load_multiple_grid
     default="test_optuna",
     help="txt name for optuna dashboard",
 )
-
-def main(trials: int, 
-        merged_dataset: bool, 
-        data_order: (str,str,str,str), 
-        txt_name: str,
-        txt_optuna: str,
-        ):
-    
-    def run_experiment(k, epochs, merged_dataset, data_order, txt_name, batch_size, hidden_mlp, aggregation_nodes_edges, aggregation_global, activation_function_mlp, activation_function_gcn, num_layers, dropout, lr, temp_init):
+def main(
+    trials: int,
+    merged_dataset: bool,
+    data_order: (str, str, str, str),
+    txt_name: str,
+    txt_optuna: str,
+):
+    def run_experiment(
+        k,
+        epochs,
+        merged_dataset,
+        data_order,
+        txt_name,
+        batch_size,
+        hidden_mlp,
+        aggregation_global,
+        activation_function_mlp,
+        activation_function_gcn,
+        num_layers,
+        dropout,
+        lr,
+        temp_init,
+    ):
         torch.cuda.empty_cache()
-        os.chdir('/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/')
-        
+        os.chdir("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
+
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print("Using device:", device)
-        
+
         torch.manual_seed(2023)
 
         print_log = False
         logging = "None"
         txt_name = str(txt_name)
         print(txt_name)
-        
+
         if merged_dataset:
             print(data_order)
         else:
             print(data_order[0])
-            
+
         if merged_dataset:
-            samples_fold = [2000, 2000, 2000, 2000] 
+            samples_fold = [2000, 2000, 2000, 2000]
             for i in range(len(data_order)):
-                if data_order[i]=="location3":
-                    samples_fold[i]=200# last one [-1] is the test data
-            
+                if data_order[i] == "location3":
+                    samples_fold[i] = 200  # last one [-1] is the test data
+
             print(
                 f"Merging datasets [{data_order[0], data_order[1], data_order[2]}] for training "
                 f"and using [{data_order[3]}] for testing"
             )
         else:
             print("Using a single dataset")
-            data_order = [data_order[0]] 
-            samples_fold=2000
-            if data_order[0]=="location3":
+            data_order = [data_order[0]]
+            samples_fold = 2000
+            if data_order[0] == "location3":
                 samples_fold = 200
 
         base_config = {
@@ -96,7 +112,7 @@ def main(trials: int,
             "linear_learn": False,
             "hidden_mlp": hidden_mlp,
             "out_global": 1,
-            "criterion": F.binary_cross_entropy
+            "criterion": F.binary_cross_entropy,
         }
 
         additional_config = {
@@ -117,24 +133,27 @@ def main(trials: int,
             "l2_weight": 0.01,
             "temperature_init": temp_init,
         }
-        
+
         additional_config.update(
-            {"hidden_global": base_config["hidden_mlp"] * (additional_config.get("num_layers"))}
+            {
+                "hidden_global": base_config["hidden_mlp"]
+                * (additional_config.get("num_layers"))
+            }
         )
-        
+
         print(f"Running experiment with config: {additional_config}")
-        
+
         dataset = load_multiple_grid(
             additional_config["dataset_explore"],
             additional_config["samples_fold"],
             topo=base_config["topo_changes"],
             undir=base_config["undirected"],
-            norm=base_config["normalise_data"]
+            norm=base_config["normalise_data"],
         )
 
         _, _, test_loader = load_dataloader(
             dataset,
-            batchsize=1, 
+            batchsize=1,
             shuffle=base_config["shuffle_data"],
         )
 
@@ -145,11 +164,10 @@ def main(trials: int,
         )
 
         for data in train_loader:
-            n_edge_feat = data.num_edge_features
             n_node_feat = data.num_node_features
             break
-        
-        model_gcn_edges = GCN(
+
+        model_gcn = GCN(
             in_channels_gcn_x=n_node_feat,
             hidden_channels_gcn=base_config["hidden_mlp"],
             hidden_channels_global=additional_config["hidden_global"],
@@ -159,12 +177,12 @@ def main(trials: int,
             activation_function_mlp=additional_config["activation_function_mlp"],
             activation_function_gcn=additional_config["activation_function_gcn"],
             aggregation_global=additional_config["aggregation_global"],
-            device=device, 
+            device=device,
         ).to(device)
-        
+
         train_model(
-            model_gcn_edges,
-            train_loader,  
+            model_gcn,
+            train_loader,
             val_loader,
             test_loader,
             device,
@@ -178,68 +196,80 @@ def main(trials: int,
             name_log=txt_name,
             reduction_loss=additional_config["reduction_loss"],
             l1_weight=additional_config["l1_weight"],
-            l2_weight=additional_config["l2_weight"]
+            l2_weight=additional_config["l2_weight"],
         )
 
         total_loss, total_acc = test_model(
-            model_gcn_edges,
+            model_gcn,
             test_loader,
             device,
             criterion=base_config["criterion"],
             test=True,
             reduction_loss=additional_config["reduction_loss"],
             l1_weight=additional_config["l1_weight"],
-            l2_weight=additional_config["l2_weight"]
+            l2_weight=additional_config["l2_weight"],
         )
-        
+
         return total_loss, total_acc
 
     def objective(trial, n_trial, merged_dataset, data_order, txt_name):
-        k = n_trial 
-        epochs = trial.suggest_int('epochs', 250, 4000)
-        lr = trial.suggest_loguniform('lr', 1e-5, 1e-3) 
-        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
-        dropout = trial.suggest_uniform('dropout', 0.01, 0.5)
-        temp_init = trial.suggest_uniform('temp_init', 0.8, 1.1)
-        num_layers = trial.suggest_int('num_layers', 5, 25)
-        aggregation_global = trial.suggest_categorical('aggregation_global', ['max', 'mean', 'sum'])
-        activation_function_mlp = trial.suggest_categorical('activation_function_mlp', ['LeakyReLU', 'ReLU', 'Tanh'])
-        activation_function_gcn = trial.suggest_categorical('activation_function_gcn', ['LeakyReLU', 'ReLU', 'Tanh'])
-        hidden_mlp = trial.suggest_categorical('hidden_mlp' , [16, 32, 64, 128])
-        
+        k = n_trial
+        epochs = trial.suggest_int("epochs", 250, 4000)
+        lr = trial.suggest_loguniform("lr", 1e-5, 1e-3)
+        batch_size = trial.suggest_categorical("batch_size", [32, 64, 128])
+        dropout = trial.suggest_uniform("dropout", 0.01, 0.5)
+        temp_init = trial.suggest_uniform("temp_init", 0.8, 1.1)
+        num_layers = trial.suggest_int("num_layers", 5, 25)
+        aggregation_global = trial.suggest_categorical(
+            "aggregation_global", ["max", "mean", "sum"]
+        )
+        activation_function_mlp = trial.suggest_categorical(
+            "activation_function_mlp", ["LeakyReLU", "ReLU", "Tanh"]
+        )
+        activation_function_gcn = trial.suggest_categorical(
+            "activation_function_gcn", ["LeakyReLU", "ReLU", "Tanh"]
+        )
+        hidden_mlp = trial.suggest_categorical("hidden_mlp", [16, 32, 64, 128])
+
         hyperparams = {
-            'k': k,
-            'epochs': epochs,
-            'merged_dataset': merged_dataset,  # Example fixed value
-            'data_order': data_order,  # Example fixed value
-            'txt_name': txt_name,
-            'batch_size': batch_size,
-            'hidden_mlp': hidden_mlp,  
-            'aggregation_global': aggregation_global, 
-            'activation_function_mlp': activation_function_mlp,  
-            'activation_function_gcn': activation_function_gcn,  
-            'num_layers': num_layers,  
-            'dropout': dropout,
-            'lr': lr,
-            'temp_init': temp_init,  
+            "k": k,
+            "epochs": epochs,
+            "merged_dataset": merged_dataset,
+            "data_order": data_order,
+            "txt_name": txt_name,
+            "batch_size": batch_size,
+            "hidden_mlp": hidden_mlp,
+            "aggregation_global": aggregation_global,
+            "activation_function_mlp": activation_function_mlp,
+            "activation_function_gcn": activation_function_gcn,
+            "num_layers": num_layers,
+            "dropout": dropout,
+            "lr": lr,
+            "temp_init": temp_init,
         }
 
         loss, accuracy = run_experiment(**hyperparams)
         print(f"Trial finished with test loss {loss} and test accuracy {accuracy}")
         return accuracy
-    
-    study = optuna.create_study(direction='maximize', storage=f"sqlite:///db.sqlite3", study_name=txt_optuna)
-    study.optimize(lambda trial: objective(trial, trials, merged_dataset, data_order, txt_name), n_trials=trials)
-    
+
+    study = optuna.create_study(
+        direction="maximize", storage=f"sqlite:///db.sqlite3", study_name=txt_optuna
+    )
+    study.optimize(
+        lambda trial: objective(trial, trials, merged_dataset, data_order, txt_name),
+        n_trials=trials,
+    )
+
     optuna.plot_intermediate_values(study)
     optuna.plot_parallel_coordinate(study)
     optuna.plot_contour(study)
-    
-    print('Number of finished trials:', len(study.trials))
-    print('Best trial:', study.best_trial.params)
+
+    print("Number of finished trials:", len(study.trials))
+    print("Best trial:", study.best_trial.params)
     print(study.best_trial.number)
     print(study.best_value)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     print("start hyperparam optimisation")
     main()
