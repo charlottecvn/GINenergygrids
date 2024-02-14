@@ -165,10 +165,12 @@ def main(
 
         for data in train_loader:
             n_node_feat = data.num_node_features
+            n_edge_feat = data.num_edge_features
             break
 
         model_gat = GAT(
             in_channels_gat_x=n_node_feat,
+            in_channels_gat_edge=n_edge_feat,
             hidden_channels_gat=base_config["hidden_mlp"],
             hidden_channels_global=additional_config["hidden_global"],
             out_channels_global=base_config["out_global"],
@@ -253,7 +255,7 @@ def main(
         return accuracy
 
     study = optuna.create_study(
-        direction="maximize", storage=f"sqlite:///db.sqlite3", study_name=txt_optuna
+        direction="maximize", storage=f"sqlite:///db.gat.sqlite3", study_name=txt_optuna
     )
     study.optimize(
         lambda trial: objective(trial, trials, merged_dataset, data_order, txt_name),

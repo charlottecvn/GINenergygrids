@@ -19,10 +19,12 @@ class GAT(torch.nn.Module):
     def __init__(
         self,
         in_channels_gat_x=4,
+        in_channels_gat_edge=8,
         hidden_channels_gat=16,
         hidden_channels_global=2,
         out_channels_global=1,
         num_layers=1,
+        edge_dim=8,
         dropout=0.15,
         activation_function_gat="LeakyReLU",
         activation_function_mlp="LeakyReLU",
@@ -68,8 +70,19 @@ class GAT(torch.nn.Module):
 
         self.in_channels_gat_x = in_channels_gat_x
         self.hidden_channels_gat = hidden_channels_gat
+        
+        # INPUT GAT BLOCK (edges)
+        self.gat_MLP_layers.append(
+            Sequential(
+                Linear(self.in_channels_gat_edge, self.hidden_channels_gat),
+                self.activation_function_input_mlp,
+                Linear(self.hidden_channels_gat, self.hidden_channels_gat),
+                self.activation_function_input_mlp,
+                Linear(self.hidden_channels_gat, self.hidden_channels_gat),
+            ).to(self.device)
+        )
 
-        # INPUT GAT BLOCK (nodes) --> see forward(..)
+        # INPUT GAT BLOCK (nodes) 
         self.node_embd = Sequential(
             Linear(self.in_channels_gat_x, self.hidden_channels_gat),
             self.activation_function_input_mlp,
@@ -82,7 +95,9 @@ class GAT(torch.nn.Module):
         for i in range(num_layers):
             self.gat_MLP_layers.append(
                 GATConv(
-                    in_channels=hidden_channels_gat, out_channels=hidden_channels_gat
+                    in_channels=hidden_channels_gat, 
+                    out_channels=hidden_channels_gat,
+                    edge_dim=edge_dim
                 ).to(self.device)
             )
 
@@ -97,7 +112,7 @@ class GAT(torch.nn.Module):
             ).to(self.device)
         )
 
-    def forward(self, x, edge_index, batch):
+    def forward(self, x, edge_index, batch, edge_attr):
         if self.aggregation_global == "add":
             aggregation = global_add_pool
         elif self.aggregation_global == "mean":
@@ -123,7 +138,7 @@ class GAT(torch.nn.Module):
 
         # embeddings (edges)
         edge_attr = edge_attr.to(self.device)
-        edge_attr = self.gin_MLP_layers[0](edge_attr)
+        edge_attr = self.gat_MLP_layers[0](edge_attr)
 
         # GAT layers
         for blocks_i in range(self.num_layers):

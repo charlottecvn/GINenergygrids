@@ -266,7 +266,7 @@ def main(
         return accuracy
 
     study = optuna.create_study(
-        direction="maximize", storage=f"sqlite:///db.sqlite3", study_name=txt_optuna
+        direction="maximize", storage=f"sqlite:///db.gin.sqlite3", study_name=txt_optuna
     )
     study.optimize(
         lambda trial: objective(trial, trials, merged_dataset, data_order, txt_name),
