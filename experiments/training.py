@@ -109,7 +109,7 @@ def train_model(
                 model.train()
                 optimizer.zero_grad()
 
-                if model.model_name == "GCN": #no use of edge attributes
+                if model.model_name == "GCN":  # no use of edge attributes
                     out_zero, out = model(data.x, data.edge_index, data.batch)
                 else:
                     out_zero, out = model(

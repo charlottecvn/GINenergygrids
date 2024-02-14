@@ -174,6 +174,7 @@ def main(
             hidden_channels_gat=base_config["hidden_mlp"],
             hidden_channels_global=additional_config["hidden_global"],
             out_channels_global=base_config["out_global"],
+            edge_dim=base_config["hidden_mlp"],
             num_layers=additional_config["num_layers"],
             dropout=additional_config["dropout"],
             activation_function_mlp=additional_config["activation_function_mlp"],
