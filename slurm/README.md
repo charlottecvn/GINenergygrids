@@ -1,6 +1,6 @@
 # SLURM experiments 
 
-'''
+```
 ssh cn104
 cn84 / cnlogin22
 cn117
@@ -20,4 +20,4 @@ optuna-dashboard optuna-gin.log
 
 nestat -nlp
 kill <pid>
-'''
+```
