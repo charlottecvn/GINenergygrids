@@ -4,6 +4,8 @@ inputdata/
 notebooks/
 logs/
 locations_.py
-slurm/
 .pyc
 __pycache__/
+*.sqlite3
+*.log 
+
