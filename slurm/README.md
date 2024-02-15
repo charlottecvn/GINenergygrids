@@ -17,7 +17,8 @@ nvidia-smi
 
 optuna-dashboard sqlite:///db.sqlite3
 optuna-dashboard optuna-gin.log
+-- port 
 
-nestat -nlp
+netstat -nlp
 kill <pid>
 ```
