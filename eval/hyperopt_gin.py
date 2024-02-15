@@ -5,6 +5,18 @@ import click
 from pathlib import Path
 import optuna
 import sys
+from optuna.storages import JournalStorage, JournalFileStorage
+
+from optuna.visualization import plot_contour
+from optuna.visualization import plot_edf
+from optuna.visualization import plot_intermediate_values
+from optuna.visualization import plot_optimization_history
+from optuna.visualization import plot_parallel_coordinate
+from optuna.visualization import plot_param_importances
+from optuna.visualization import plot_rank
+from optuna.visualization import plot_slice
+from optuna.visualization import plot_timeline
+from optuna_dashboard import save_plotly_graph_object
 
 sys.path.append("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
 from graphnetwork.GIN_model import GIN
@@ -265,13 +277,35 @@ def main(
         print(f"Trial finished with test loss {loss} and test accuracy {accuracy}")
         return accuracy
 
+    storage = JournalStorage(JournalFileStorage("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/slurm/optuna-gin.log")) #f"sqlite:///db.gin.sqlite3"
+    #storage = "sqlite:///gin-study.db"
     study = optuna.create_study(
-        direction="maximize", storage=f"sqlite:///db.gin.sqlite3", study_name=txt_optuna
+        direction="maximize", storage=storage, study_name=txt_optuna
     )
     study.optimize(
         lambda trial: objective(trial, trials, merged_dataset, data_order, txt_name),
         n_trials=trials,
     )
+
+    figure = optuna.visualization.plot_optimization_history(study)
+    save_plotly_graph_object(study, figure)
+    figure = optuna.visualization.plot_intermediate_values(study)
+    save_plotly_graph_object(study, figure)
+    figure = optuna.visualization.plot_parallel_coordinate(study)
+    save_plotly_graph_object(study, figure)
+    figure = optuna.visualization.plot_edf(study)
+    save_plotly_graph_object(study, figure)
+    figure = optuna.visualization.plot_contour(study)
+    save_plotly_graph_object(study, figure)
+    figure = optuna.visualization.plot_param_importances(study)
+    save_plotly_graph_object(study, figure)
+    figure = optuna.visualization.plot_rank(study)
+    save_plotly_graph_object(study, figure)
+    figure = optuna.visualization.plot_slice(study)
+    save_plotly_graph_object(study, figure)
+    figure = optuna.visualization.plot_timeline(study)
+    save_plotly_graph_object(study, figure)
+
     print("Number of finished trials:", len(study.trials))
     print("Best trial:", study.best_trial.params)
     print(study.best_trial.number)
