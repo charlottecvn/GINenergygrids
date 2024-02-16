@@ -267,8 +267,8 @@ def main(
         print(f"Trial finished with test loss {loss} and test accuracy {accuracy}")
         return accuracy
 
-    #storage = JournalStorage(JournalFileStorage("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/slurm/optuna-gat.log")) 
-    storage = f"sqlite:///db.gat.sqlite3"#"sqlite:///gat-study.db"
+    storage = JournalStorage(JournalFileStorage("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/slurm/optuna-gat.log")) 
+    #storage = f"sqlite:///db.gat.sqlite3"#"sqlite:///gat-study.db"
     
     study = optuna.create_study(
         direction="maximize", storage=storage, study_name=txt_optuna
