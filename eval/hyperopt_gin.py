@@ -18,7 +18,9 @@ from optuna.visualization import plot_slice
 from optuna.visualization import plot_timeline
 from optuna_dashboard import save_plotly_graph_object
 
-sys.path.append("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
+#sys.path.append("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
+sys.path.append("/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/")
+
 from graphnetwork.GIN_model import GIN
 from experiments.training import train_model, test_model, AUC_test
 from dataprocessing.load_griddata import load_dataloader, load_multiple_grid
@@ -81,10 +83,17 @@ def main(
         lr,
         temp_init,
     ):
-        torch.cuda.empty_cache()
-        os.chdir("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
+        #torch.cuda.empty_cache()
+        #os.chdir("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
+        os.chdir("/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/")
 
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            device = torch.device("cuda:0")
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else: 
+            device = torch.device("cpu")
+
         print("Using device:", device)
 
         torch.manual_seed(2023)
@@ -277,7 +286,8 @@ def main(
         print(f"Trial finished with test loss {loss} and test accuracy {accuracy}")
         return accuracy
 
-    storage = JournalStorage(JournalFileStorage("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/slurm/optuna-gin.log")) #f"sqlite:///db.gin.sqlite3"
+    #storage = JournalStorage(JournalFileStorage("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/slurm/optuna-gin.log")) #f"sqlite:///db.gin.sqlite3"
+    storage = JournalStorage(JournalFileStorage("/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/slurm/optuna-gin.log")) 
     #storage = "sqlite:///gin-study.db"
     study = optuna.create_study(
         direction="maximize", storage=storage, study_name=txt_optuna

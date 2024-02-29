@@ -5,7 +5,8 @@ import torch.nn.functional as F
 import click
 from pathlib import Path
 
-sys.path.append("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
+#sys.path.append("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
+sys.path.append("/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/")
 
 from graphnetwork.GIN_model import GIN
 from experiments.training import train_model, test_model, AUC_test
@@ -136,13 +137,21 @@ def main(
     lr: float,
     temp_init: float,
 ):
-    os.chdir("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
+    #os.chdir("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
+    os.chdir("/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/")
     print(os.getcwd())
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print("Using device:", device)
-    print(torch.version.cuda)
+    if torch.cuda.is_available():
+        device = torch.device("cuda:0")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else: 
+        device = torch.device("cpu")
+
     print("Is CUDA enabled?", torch.cuda.is_available())
+    print("Is MPS enabled?", torch.backends.mps.is_available())
+    print("Is CPU enabled?", torch.cpu.is_available())
+    print("Using device:", device)
 
     n_epochs = epochs
 
