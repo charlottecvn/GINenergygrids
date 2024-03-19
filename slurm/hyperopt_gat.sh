@@ -10,7 +10,7 @@
 #SBATCH --output=../../../GNNs_UQ_charlotte/logs/out/%x-%J.out
 #SBATCH --error=../../../GNNs_UQ_charlotte/logs/err/%x-%J.err
 
-source ../../../virtual_environment/bin/activate
+source scratch/ccambiervannoote/virtual_env/venv_gnn/bin/activate
 
 trials=10
 merged_dataset=False #True for LOO

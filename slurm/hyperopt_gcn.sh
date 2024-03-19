@@ -7,10 +7,11 @@
 #SBATCH --time=47:59:00
 #SBATCH --array=0-3%1
 #SBATCH --job-name=hyperopt_GCN_all
-#SBATCH --output=../../../GNNs_UQ_charlotte/logs/out/%x-%J.out
-#SBATCH --error=../../../GNNs_UQ_charlotte/logs/err/%x-%J.err
+#SBATCH --output=/home/ccambiervannoote/GitHub/logs/slurm/%x-%J.out
+#SBATCH --error=/home/ccambiervannoote/GitHub/logs/slurm/%x-%J.err
 
-source ../../.conda/bin/activate
+VENV_DIR=/scratch/ccambiervannoote/virtual_env/venv_gnn
+source "$VENV_DIR"/bin/activate
 
 trials=10
 merged_dataset=False #True for LOO
@@ -31,7 +32,7 @@ data_order2="location1"
 data_order3="location1"
 data_order4="location1"
 
-python3 -u ../../../GNNs_UQ_charlotte/GINenergygrids/eval/hyperopt_gcn.py \
+python -u /home/ccambiervannoote/GitHub/GINenergygrids/eval/hyperopt_gcn.py \
   --trials $trials \
   --merged_dataset $merged_dataset \
   --data_order $data_order1 $data_order2 $data_order3 $data_order4  \

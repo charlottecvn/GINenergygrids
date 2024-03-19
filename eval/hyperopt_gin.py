@@ -18,8 +18,7 @@ from optuna.visualization import plot_slice
 from optuna.visualization import plot_timeline
 from optuna_dashboard import save_plotly_graph_object
 
-#sys.path.append("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
-sys.path.append("/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/")
+sys.path.append("/home/ccambiervannoote/GitHub/GINenergygrids/")
 
 from graphnetwork.GIN_model import GIN
 from experiments.training import train_model, test_model, AUC_test
@@ -84,8 +83,7 @@ def main(
         temp_init,
     ):
         #torch.cuda.empty_cache()
-        #os.chdir("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/")
-        os.chdir("/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/")
+        os.chdir("/home/ccambiervannoote/GitHub/GINenergygrids/")
 
         if torch.cuda.is_available():
             device = torch.device("cuda:0")
@@ -286,9 +284,8 @@ def main(
         print(f"Trial finished with test loss {loss} and test accuracy {accuracy}")
         return accuracy
 
-    #storage = JournalStorage(JournalFileStorage("/ceph/knmimo/GNNs_UQ_charlotte/GINenergygrids/slurm/optuna-gin.log")) #f"sqlite:///db.gin.sqlite3"
-    storage = JournalStorage(JournalFileStorage("/Users/charlottecambiervannooten/Documents/GitHub/GINenergygrids/slurm/optuna-gin.log")) 
-    #storage = "sqlite:///gin-study.db"
+    storage = JournalStorage(JournalFileStorage("/home/ccambiervannoote/GitHub/logs/optuna/optuna-gin.log")) 
+    
     study = optuna.create_study(
         direction="maximize", storage=storage, study_name=txt_optuna
     )
